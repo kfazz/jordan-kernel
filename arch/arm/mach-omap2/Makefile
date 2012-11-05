@@ -273,6 +273,7 @@ obj-$(CONFIG_MACH_OMAP_MAPPHONE)	   += board-mapphone.o \
 					   board-mapphone-cpcap-client.o \
 					   board-mapphone-spi.o \
 					   board-mapphone-i2c.o \
+					   board-mapphone-panel.o \
 					   pmic-cpcap.o \
 					   wakeup-timer.o \
 					   #board-mapphone-usb.o

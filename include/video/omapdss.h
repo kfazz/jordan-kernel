@@ -382,6 +382,21 @@ struct omap_dss_cconv_coefs {
 	u16 full_range;
 } __attribute__ ((aligned(4)));
 
+struct omap_dsi_video_timings {
+	/* Unit: pixel clocks */
+	u16 hsa;        /* Horizontal synch active */
+	/* Unit: pixel clocks */
+	u16 hfp;        /* Horizontal front porch */
+	/* Unit: pixel clocks */
+	u16 hbp;        /* Horizontal back porch */
+	/* Unit: line clocks */
+	u16 vsa;        /* Vertical synch active */
+	/* Unit: line clocks */
+	u16 vfp;        /* Vertical front porch */
+	/* Unit: line clocks */
+	u16 vbp;        /* Vertical back porch */
+};
+
 struct omap_overlay_info {
 	bool enabled;
 
@@ -531,7 +546,9 @@ struct omap_dss_device {
 			int module;
 
 			bool ext_te;
+			struct omap_dsi_video_timings vm_timing;
 			u8 ext_te_gpio;
+
 		} dsi;
 
 		struct {
@@ -579,6 +596,7 @@ struct omap_dss_device {
 
 		enum omap_panel_config config;
 		struct fb_monspecs monspecs;
+		unsigned long panel_id;
 
 		u32 width_in_um;
 		u32 height_in_um;
