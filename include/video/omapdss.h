@@ -336,6 +336,13 @@ struct omap_video_timings {
 	u16 vfp;	/* Vertical front porch */
 	/* Unit: line clocks */
 	u16 vbp;	/* Vertical back porch */
+	u32 dsi1_pll_fclk;	/* func clk for DISPC from DSI PLL */
+	/* Unit: kHz */
+	u32 dsi2_pll_fclk;	/* func clk for DSI from DSI PLL */
+	/* width of display in mm */
+	u16 w;
+	/* hieght of display in mm */
+	u16 h;
 };
 
 #ifdef CONFIG_OMAP2_DSS_VENC
@@ -660,6 +667,16 @@ struct omap_dss_driver {
 
 	int (*set_update_mode)(struct omap_dss_device *dssdev,
 			enum omap_dss_update_mode);
+	void (*setup_update2)(struct omap_dss_device *dssdev,
+			u16 x, u16 y, u16 w, u16 h);
+	bool (*sw_te_sup)(struct omap_dss_device *dssdev);
+	bool (*deep_sleep_mode) (struct omap_dss_device *dssdev);
+	int (*hs_mode_timing)(struct omap_dss_device *display);
+	bool (*manual_te_trigger)(struct omap_dss_device *display);
+	int (*framedone)(struct omap_dss_device *display);
+	int (*read_scl)(struct omap_dss_device *dssdev);
+	int (*get_scl_setting)(struct omap_dss_device *dssdev);
+
 	enum omap_dss_update_mode (*get_update_mode)(
 			struct omap_dss_device *dssdev);
 
