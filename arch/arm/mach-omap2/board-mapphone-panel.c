@@ -34,10 +34,17 @@
 
 #include "pm.h"
 /*#define DISABLED_FOR_BRINGUP*/
-#define DEBUG
+/*#define DEBUG*/
+#ifdef DEBUG
+static unsigned int board_panel_debug;
 #define PANELDBG(format, ...) \
+	if (board_panel_debug) \
 			printk(KERN_DEBUG "board_panel: " format, \
 					## __VA_ARGS__)
+#else /* DEBUG */
+#define PANELDBG(format, ...)
+#endif
+
 #define PANELERR(format, ...) \
 	printk(KERN_ERR "board_panel ERR: " format, ## __VA_ARGS__)
 
@@ -488,7 +495,7 @@ static int mapphone_dt_get_panel_power_supply(struct device_node *panel_node)
 
 		if (i == 0) {
 			/* By default, using sw5 */
-			strncpy(supply->name, "vhvio",
+			strncpy(supply->name, "sw5",
 				MAPPHONE_DSI_MAX_NAME_SIZE - 1);
 			supply->name[MAPPHONE_DSI_MAX_NAME_SIZE - 1] = '\0';
 
@@ -525,13 +532,11 @@ static int mapphone_dt_get_panel_power_supply(struct device_node *panel_node)
 		   leave as default value defined above */
 		if (panel_prop != NULL) {
 			if (len) {
-				printk("dt_node_pwr_name exist\n");
 				strncpy(supply->name, (char *)panel_prop,
 					MAPPHONE_DSI_MAX_NAME_SIZE - 1);
 				supply->name[MAPPHONE_DSI_MAX_NAME_SIZE - 1] =
 					'\0';
 			} else
-				printk("dt_node_pwr_name not exist\n");
 				supply->name[0] = '\0';
 		}
 
@@ -544,7 +549,7 @@ static int mapphone_dt_get_panel_power_supply(struct device_node *panel_node)
 		if (panel_prop != NULL)
 			supply->en_gpio_value = *(u8 *)panel_prop;
 	}
-		
+
 end:
 	return r;
 }
@@ -567,81 +572,48 @@ static int mapphone_dt_get_dsi_panel_info(void)
 
 	/* Retrieve the panel information */
 	panel_prop = of_get_property(panel_node, "dsi_clk_lane", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.clk_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_clk_lane\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_clk_pol", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.clk_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_clk_pol\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data1_lane", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data1_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data1_lane\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data1_pol", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data1_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data1_pol\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data2_lane", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data2_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data2_lane\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data2_pol", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data2_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data2_pol\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data3_lane", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data3_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data3_lane\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data3_pol", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data3_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data3_pol\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data4_lane", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data4_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data4_lane\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "dsi_data4_pol", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_lcd_device.phy.dsi.data4_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data4_pol\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "gpio_reset", NULL);
-	if (panel_prop != NULL) {
+	if (panel_prop != NULL)
 		mapphone_panel_data.reset_gpio = *(u32 *)panel_prop;
-	} else {
-		printk("Can't get gpio_reset\n");
-	}
 
 	panel_prop = of_get_property(panel_node, "rst_delay_after_pwr", NULL);
 	if (panel_prop != NULL)
@@ -1164,12 +1136,10 @@ static int __init mapphone_dt_panel_init(void)
 		} else if (mapphone_dt_get_panel_feature() != 0) {
 			PANELERR("failed to parse panel feature info\n");
 			ret = -ENODEV;
-/*
 		} else if (mapphone_feature_hdmi &&
 				mapphone_dt_get_hdtv_info() != 0) {
 			PANELERR("failed to parse hdtv info\n");
 			ret = -ENODEV;
-*/
 		} else {
 			mapphone_panel_device_read_dt = true;
 		}
@@ -1396,7 +1366,7 @@ void __init mapphone_panel_init(void)
 		}
 		gpio_direction_output(mapphone_displ_lvds_wp_e, 1);
 	}
-
+#if 0
 	if (mapphone_feature_hdmi) {
 		/* Set the bits to disable "internal pullups" for the DDC
 		 * clk and data lines.  This is required for ES2.3 parts
@@ -1411,7 +1381,7 @@ void __init mapphone_panel_init(void)
 		/* Remove HDTV from the DSS device list */
 		mapphone_dss_data.num_devices--;
 	}
-
+#endif
 	platform_device_register(&omap_panel_device);
 	omap_display_init(&mapphone_dss_data);
 
