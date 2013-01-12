@@ -1820,6 +1820,18 @@ static int dsi_mipi_cm_480_854_panel_enable(struct omap_dss_device *dssdev)
 	if (ret)
 		printk(KERN_ERR "failed to send LANE_CONFIG\n");
 
+	/* Forcing display inversion off for hardware issue
+	 * on some phones (observed inverted color, ~1% of powerups fail)
+	 */
+	data[0] = EDISCO_CMD_SET_INVERSION_OFF;
+	ret = mapphone_panel_lp_cmd_wrt_sync(dssdev,
+				true, 0,
+				data, 1,
+				EDISCO_CMD_READ_DISPLAY_IMAGE_MODE, 1,
+				0x00, EDISCO_CMD_SET_INVERSION_OFF);
+	if (ret)
+		printk(KERN_ERR "failed to send EDISCO_CMD_SET_INVERSION_OFF \n");
+
 	/* 2nd param 0 = WVGA; 1 = WQVGA */
 	data[0] = EDISCO_CMD_SET_DISPLAY_MODE;
 	data[1] = 0x00;
