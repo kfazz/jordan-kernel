@@ -301,8 +301,7 @@ static IMG_VOID SGXResetInvalDC(PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 #if !defined(SGX_FEATURE_MULTIPLE_MEM_CONTEXTS)
 	{
-		
-
+		printk("in reset, calling PollForValue @ %lu", (IMG_UINT32 *)((IMG_UINT8*)psDevInfo->pvRegsBaseKM + EUR_CR_BIF_MEM_REQ_STAT));
 
 		if (PollForValueKM((IMG_UINT32 *)((IMG_UINT8*)psDevInfo->pvRegsBaseKM + EUR_CR_BIF_MEM_REQ_STAT),
 							0,

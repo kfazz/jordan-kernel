@@ -865,10 +865,10 @@ void __init mapphone_i2c_init(void)
 			mapphone_i2c_bus3_board_info, i2c_bus_devices);
 
 	mapphone_akm8973_init();
-	mapphone_kxtf9_init();
+	//mapphone_kxtf9_init();
 	mapphone_lm3554_init();
 	mapphone_isl29030_init();
-	mapphone_bu52014hfv_init();
+	//mapphone_bu52014hfv_init();
 	platform_device_register(&omap3430_hall_effect_dock);
 
 }

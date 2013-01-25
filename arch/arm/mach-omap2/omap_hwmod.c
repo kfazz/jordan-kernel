@@ -182,10 +182,12 @@ static int _update_sysc_cache(struct omap_hwmod *oh)
 		WARN(1, "omap_hwmod: %s: cannot read OCP_SYSCONFIG: not defined on hwmod's class\n", oh->name);
 		return -EINVAL;
 	}
-
+	//printk("_update_sysc_cache called for %s\n",oh->name );
 	/* XXX ensure module interface clock is up */
-
-	oh->_sysc_cache = omap_hwmod_read(oh, oh->class->sysc->sysc_offs);
+	if ( (oh!=0) && (oh->class->sysc->sysc_offs!=0)) //(oh->name!="gpu") &&
+		oh->_sysc_cache = omap_hwmod_read(oh, oh->class->sysc->sysc_offs);
+	else
+		printk("error %s sysc_offs %d\n ", oh->name, oh->class->sysc->sysc_offs);
 
 	if (!(oh->class->sysc->sysc_flags & SYSC_NO_CACHE))
 		oh->_int_flags |= _HWMOD_SYSCONFIG_LOADED;
@@ -1718,6 +1720,7 @@ int omap_hwmod_for_each(int (*fn)(struct omap_hwmod *oh, void *data),
 		return -EINVAL;
 
 	list_for_each_entry(temp_oh, &omap_hwmod_list, node) {
+		//printk("omap_hwmod: %s\n", temp_oh->name);
 		ret = (*fn)(temp_oh, data);
 		if (ret)
 			break;

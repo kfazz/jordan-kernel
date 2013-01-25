@@ -70,6 +70,7 @@ struct tag_flat_dev_tree_address {
 	u32 size;
 };
 
+#if 0
 static u32 fdt_start_address;
 static u32 fdt_size;
 
@@ -95,6 +96,7 @@ static int __init parse_tag_flat_dev_tree_address(const struct tag *tag)
 }
 
 __tagtable(ATAG_FLAT_DEV_TREE_ADDRESS, parse_tag_flat_dev_tree_address);
+#endif
 
 static struct omap2_hdq_platform_config mapphone_hdq_data = {
 	.mode = OMAP_SDQ_MODE,
@@ -258,6 +260,7 @@ static void __init omap_mapphone_init_early(void)
 	omap2_init_common_devices(JEDEC_JESD209A_sdrc_params,
 				   JEDEC_JESD209A_sdrc_params);
 
+#if 0
 	if (fdt_start_address) {
 		void *mem;
 		mem = __alloc_bootmem(fdt_size, __alignof__(int), 0);
@@ -267,10 +270,96 @@ static void __init omap_mapphone_init_early(void)
 		pr_info("Unflattening device tree: 0x%08x\n", (u32)mem);
 		unflatten_device_tree();
 	}
+#endif
 }
+
+
+#include "common-board-devices.h"
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/nand.h>
+#include <linux/mtd/partitions.h>
+#include <plat/nand.h>
+#include <plat/gpmc.h>
+//#define NAND_BLOCK_SIZE (64 * 2048)
+
+static struct mtd_partition nand_partitions[] = {
+	{
+		.name           = "xloader",
+		.offset         = 0,			/* Offset = 0x00000 */
+		.size           = 4 * NAND_BLOCK_SIZE,
+		.mask_flags     = MTD_WRITEABLE
+	},
+	{
+		.name           = "uboot",
+		.offset         = MTDPART_OFS_APPEND,	/* Offset = 0x80000 */
+		.size           = 4 * NAND_BLOCK_SIZE,
+		.mask_flags     = MTD_WRITEABLE
+	},
+	{
+		.name           = "uboot environment",
+		.offset         = MTDPART_OFS_APPEND,	/* Offset = 0x160000 */
+		.size           = 2 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name           = "linux",
+		.offset         = MTDPART_OFS_APPEND,
+		.size           = 32 * NAND_BLOCK_SIZE,
+	},
+	{
+		.name           = "rootfs",
+		.offset         = MTDPART_OFS_APPEND,
+		.size           = MTDPART_SIZ_FULL,
+	},
+};
+
+static struct gpmc_timings nand_timings = {
+
+	.sync_clk = 0,
+
+	.cs_on = 0,
+	.cs_rd_off = 36,
+	.cs_wr_off = 36,
+
+	.adv_on = 6,
+	.adv_rd_off = 24,
+	.adv_wr_off = 36,
+
+	.we_off = 30,
+	.oe_off = 48,
+
+	.access = 54,
+	.rd_cycle = 72,
+	.wr_cycle = 72,
+
+	.wr_access = 30,
+	.wr_data_mux_bus = 0,
+};
+
+static struct omap_nand_platform_data board_nand_data = {
+	.nand_setup	= NULL,
+	.gpmc_t		= &nand_timings, /* review these*/
+	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
+	.dev_ready	=  1,
+	.xfer_type	= 0, //NAND_OMAP_PREFETCH_IRQ,
+	.devsize	= NAND_BUSWIDTH_16,	/* '0' for 8-bit, '1' for 16-bit device */
+	.cs		= 0,
+	.parts		= nand_partitions,
+	.nr_parts	= ARRAY_SIZE(nand_partitions),
+	.ecc_opt	= OMAP_ECC_HAMMING_CODE_HW,
+	.gpmc_irq	= INT_34XX_GPMC_IRQ,
+};
+
+#ifdef CONFIG_OMAP_MUX
+static struct omap_board_mux board_mux[] __initdata = {
+	{ .reg_offset = OMAP_MUX_TERMINATOR },
+};
+#else
+#define board_mux	NULL
+#endif
 
 static void __init omap_mapphone_init(void)
 {
+	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
@@ -285,6 +374,9 @@ static void __init omap_mapphone_init(void)
 	mapphone_wifi_init();
 	mapphone_power_off_init();
 	mapphone_hsmmc_init();
+
+	gpmc_nand_init(&board_nand_data);
+
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 #ifdef CONFIG_EMU_UART_DEBUG

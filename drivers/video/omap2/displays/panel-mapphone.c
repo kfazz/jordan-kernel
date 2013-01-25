@@ -362,9 +362,9 @@ static void mapphone_esd_work(struct work_struct *work)
 	}
 
 	if (atomic_read(&panel_data->state) == PANEL_ON)
-		expected_mode = 0x9c;
+		expected_mode = 0x1C; // 0x9c;
 	else
-		expected_mode = 0x98;
+		expected_mode = 0x18; // 0x98;
 
 	DBG("ESD Check - read mode = 0x%02x, expected = 0x%02x\n", power_mode,
 		expected_mode);

@@ -1312,6 +1312,7 @@ static struct clk sgx_ick = {
 	.enable_bit	= OMAP3430ES2_CM_ICLKEN_SGX_EN_SGX_SHIFT,
 	.clkdm_name	= "sgx_clkdm",
 	.recalc		= &followparent_recalc,
+	.flags		= ENABLE_ON_INIT,
 };
 
 /* CORE power domain */

@@ -129,6 +129,7 @@ static inline void cm_t35_init_led(void) {}
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
 #include <linux/mtd/partitions.h>
+#include <plat/gpmc.h>
 
 static struct mtd_partition cm_t35_nand_partitions[] = {
 	{

@@ -76,14 +76,20 @@ struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 	unsigned long dt_root;
 	const char *model;
 
+		printk("checkingdevtree\n");
+
 	if (!dt_phys)
 		return NULL;
 
 	devtree = phys_to_virt(dt_phys);
 
+			printk("checkingvalid\n");
+
 	/* check device tree validity */
-	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER)
+	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER) {
+		printk("devtree magic: %0x\n DT_HEADER: %0x\n",devtree->magic, OF_DT_HEADER);
 		return NULL;
+		}
 
 	/* Search the mdescs for the 'best' compatible value match */
 	initial_boot_params = devtree;
@@ -99,7 +105,7 @@ struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 		const char *prop;
 		long size;
 
-		early_print("\nError: unrecognized/unsupported "
+		printk("\nError: unrecognized/unsupported "
 			    "device tree compatible list:\n[ ");
 
 		prop = of_get_flat_dt_prop(dt_root, "compatible", &size);
@@ -108,7 +114,7 @@ struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 			size -= strlen(prop) + 1;
 			prop += strlen(prop) + 1;
 		}
-		early_print("]\n\n");
+		printk("]\n\n");
 
 		dump_machine_table(); /* does not return */
 	}

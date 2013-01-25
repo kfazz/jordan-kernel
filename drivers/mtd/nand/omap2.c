@@ -1064,6 +1064,24 @@ static int __devinit omap_nand_probe(struct platform_device *pdev)
 		info->nand.ecc.hwctl            = omap_enable_hwecc;
 		info->nand.ecc.correct          = omap_correct_data;
 		info->nand.ecc.mode             = NAND_ECC_HW;
+
+	long val = 0;
+
+#define GPMC_ECC_CONTROL        0x1f8
+#define GPMC_ECC_SIZE_CONFIG    0x1fc
+//#if 0
+	/* Read from ECC Control Register */
+	val = __raw_readl(OMAP34XX_GPMC_VIRT + GPMC_ECC_CONTROL);
+	/* Clear all ECC | Enable Reg1 */
+	val = ((0x00000001<<8) | 0x00000001);
+	__raw_writel(val, OMAP34XX_GPMC_VIRT + GPMC_ECC_CONTROL);
+	/* Read from ECC Size Config Register */
+	val = __raw_readl(OMAP34XX_GPMC_VIRT + GPMC_ECC_SIZE_CONFIG);
+	/* ECCSIZE1=512 | Select eccResultsize[0-3] */
+	val = ((((512 >> 1) - 1) << 22) | (0x0000000F));
+	__raw_writel(val, OMAP34XX_GPMC_VIRT + GPMC_ECC_SIZE_CONFIG);
+//#endif
+
 	}
 
 	/* DIP switches on some boards change between 8 and 16 bit

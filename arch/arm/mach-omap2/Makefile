@@ -191,7 +191,7 @@ obj-$(CONFIG_ARCH_OMAP4)		+= omap_hwmod_44xx_data.o
 obj-$(CONFIG_OMAP3_EMU)			+= emu.o
 
 # L3 interconnect
-#obj-$(CONFIG_ARCH_OMAP3)		+= omap_l3_smx.o
+#obj-$(CONFIG_ARCH_OMAP3)		+= omap_l3_smx.o //TODO
 obj-$(CONFIG_ARCH_OMAP4)		+= omap_l3_noc.o
 
 # LDO stuff
@@ -278,6 +278,7 @@ obj-$(CONFIG_MACH_OMAP_MAPPHONE)	   += board-mapphone.o \
 					   wakeup-timer.o \
 					   board-mapphone-padconf.o \
 					   board-mapphone-touch.o \
+					   board-mapphone-flash.o
 					   #board-mapphone-usb.o
 obj-$(CONFIG_EMU_UART_DEBUG)		+= board-mapphone-emu_uart.o
 obj-$(CONFIG_MACH_CM_T35)		+= board-cm-t35.o \

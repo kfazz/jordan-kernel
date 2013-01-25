@@ -363,13 +363,15 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	IMG_BOOL				bPDumpIsSuspended = PDumpIsSuspended();
 #endif 
 
+	printk("Entered SGXInitialize\n");
+
 #if defined(SGX_FEATURE_MP)
 	
 #else
 	SGXInitClocks(psDevInfo, PDUMP_FLAGS_CONTINUOUS);
 #endif 
 	
-	
+	printk("Clocks Inited\n");
 
 	PDUMPCOMMENTWITHFLAGS(PDUMP_FLAGS_CONTINUOUS, "SGX initialisation script part 1\n");
 	eError = SGXRunScript(psDevInfo, psDevInfo->sScripts.asInitCommandsPart1, SGX_MAX_INIT_COMMANDS);
@@ -383,7 +385,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	
 	psDevInfo->ui32NumResets++;
 	SGXReset(psDevInfo, bFirstTime || bHardwareRecovery, PDUMP_FLAGS_CONTINUOUS);
-
+		printk("Reset 1 \n");
 #if defined(EUR_CR_POWER)
 #if defined(SGX531)
 	
@@ -394,7 +396,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_POWER, 1);
 	PDUMPREG(SGX_PDUMPREG_NAME, EUR_CR_POWER, 1);
 #else
-	
+	printk("Eur_cr_power\n");
 	OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_POWER, 0);
 	PDUMPREG(SGX_PDUMPREG_NAME, EUR_CR_POWER, 0);
 #endif
@@ -415,7 +417,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 #if defined(SUPPORT_MEMORY_TILING)
 	{
-		
+			printk("SUPPORT_MEMORY_TILING\n");
 		DEVICE_MEMORY_HEAP_INFO *psDeviceMemoryHeap = psDevInfo->pvDeviceMemoryHeap;
 		IMG_UINT32 i;
 
@@ -1013,13 +1015,10 @@ static IMG_VOID SGXDumpDebugReg (PVRSRV_SGXDEV_INFO	*psDevInfo,
 	PVR_LOG(("(P%u) %s%08X", ui32CoreNum, pszName, ui32RegVal));
 }
 
-void dsscomp_kdump(void);
 IMG_VOID SGXDumpDebugInfo (PVRSRV_SGXDEV_INFO	*psDevInfo,
 						   IMG_BOOL				bDumpSGXRegs)
 {
 	IMG_UINT32	ui32CoreNum;
-
-	dsscomp_kdump();
 
 	PVR_LOG(("SGX debug (%s)", PVRVERSION_STRING));
 

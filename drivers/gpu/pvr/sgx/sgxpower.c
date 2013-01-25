@@ -356,7 +356,7 @@ PVRSRV_ERROR SGXPostPowerState (IMG_HANDLE				hDevHandle,
 		{
 			
 
-			
+			printk("previous power state OFF\n");
 
 			eError = SGXUpdateTimingInfo(psDeviceNode);
 			if (eError != PVRSRV_OK)
@@ -377,7 +377,7 @@ PVRSRV_ERROR SGXPostPowerState (IMG_HANDLE				hDevHandle,
 		else
 		{
 			
-
+			printk("previous power state ON");
 			SGXMKIF_COMMAND		sCommand = {0};
 
 			sCommand.ui32Data[1] = PVRSRV_POWERCMD_RESUME;

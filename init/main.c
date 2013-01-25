@@ -700,8 +700,10 @@ static void __init do_initcalls(void)
 {
 	initcall_t *fn;
 
-	for (fn = __early_initcall_end; fn < __initcall_end; fn++)
+	for (fn = __early_initcall_end; fn < __initcall_end; fn++) {
+		//printk("Do initcall %pF\n", *fn);
 		do_one_initcall(*fn);
+		}
 }
 
 /*

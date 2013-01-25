@@ -79,6 +79,10 @@ int __init omap_init_opp_table(struct omap_opp_def *opp_def,
 		clk = omap_clk_get_by_name(opp_def->clk_name);
 		if (clk) {
 			round_rate = clk_round_rate(clk, opp_def->freq);
+
+			if (opp_def->clk_name=="dpll3_ck")
+			printk("%s rate: %lu, req'd %lu \n",opp_def->clk_name, clk->rate, opp_def->freq );
+
 			if (round_rate > 0) {
 				opp_def->freq = round_rate;
 			} else {

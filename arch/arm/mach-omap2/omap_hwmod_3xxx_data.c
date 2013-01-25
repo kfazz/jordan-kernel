@@ -1400,7 +1400,7 @@ static struct omap_hwmod_class_sysconfig omap3xxx_gpu_sysc = {
 
 static struct omap_hwmod_class omap3xxx_gpu_hwmod_class = {
 	.name = "gpu",
-	.sysc = &omap3xxx_gpu_sysc,
+	//.sysc = &omap3xxx_gpu_sysc,
 };
 
 

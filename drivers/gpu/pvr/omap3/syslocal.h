@@ -48,14 +48,6 @@
 #endif
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 35))
-#include <plat/gpu.h>
-#if !defined(PVR_NO_OMAP_TIMER)
-#define	PVR_OMAP_USE_DM_TIMER_API
-#include <plat/dmtimer.h>
-#endif
-#endif
-
 #endif
 
 #if defined (__cplusplus)
@@ -121,9 +113,6 @@ typedef struct _SYS_SPECIFIC_DATA_TAG_
 #if defined(DEBUG) || defined(TIMING)
 	struct clk	*psGPT11_FCK;
 	struct clk	*psGPT11_ICK;
-#endif
-#if defined(PVR_OMAP_USE_DM_TIMER_API)
-	struct omap_dm_timer *psGPTimer;
 #endif
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,22))
 	struct constraint_handle *pVdd2Handle;

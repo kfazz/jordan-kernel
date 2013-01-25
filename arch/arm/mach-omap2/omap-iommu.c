@@ -101,7 +101,10 @@ static int __init omap_iommu_init(void)
 	struct omap_device *od;
 	struct omap_device_pm_latency *ohl;
 
+	return -ENODEV; //disable for now?
+	printk("entered init\n");
 	if (cpu_is_omap34xx()) {
+			printk("setting iommu data\n");
 		devices_data = omap3_devices_data;
 		num_iommu_devices = NR_OMAP3_IOMMU_DEVICES;
 	} else if (cpu_is_omap44xx()) {
@@ -112,12 +115,16 @@ static int __init omap_iommu_init(void)
 
 	ohl = omap_iommu_latency;
 	ohl_cnt = ARRAY_SIZE(omap_iommu_latency);
-
+		printk("before for loop\n");
 	for (i = 0; i < num_iommu_devices; i++) {
 		struct iommu_platform_data *data = &devices_data[i];
-
+			printk("begin loop\n");
 		oh = omap_hwmod_lookup(data->oh_name);
+			printk("hwmod looked up\n");
+
+		printk("setting iobase\n");
 		data->io_base = oh->_mpu_rt_va;
+		printk("setting irq\n");
 		data->irq = oh->mpu_irqs[0].irq;
 
 		if (!oh) {
@@ -125,6 +132,7 @@ static int __init omap_iommu_init(void)
 							data->oh_name);
 			continue;
 		}
+			printk("before omap_device_build\n");
 		od = omap_device_build("omap-iommu", i, oh,
 					data, sizeof(*data),
 					ohl, ohl_cnt, false);

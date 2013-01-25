@@ -2915,7 +2915,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	 * Reset the chip, required by some chips (e.g. Micron MT29FxGxxxxx)
 	 * after power-up
 	 */
-	chip->cmdfunc(mtd, NAND_CMD_RESET, -1, -1);
+	//this kills it when IRQ transfer mode isn't set.
+	// chip->cmdfunc(mtd, NAND_CMD_RESET, -1, -1);
 
 	/* Send the command for reading device ID */
 	chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
