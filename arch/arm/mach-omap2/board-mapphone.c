@@ -367,8 +367,16 @@ static struct omap_board_mux board_mux[] __initdata = {
 
 static void __init omap_mapphone_init(void)
 {
+
 	//omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //Necessary?
 
+	/*
+	* This will allow unused regulator to be shutdown. This flag
+	* should be set in the board file. Before regulators are registered.
+	*/
+	regulator_has_full_constraints();
+	
+	omap_serial_init();
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
