@@ -116,9 +116,11 @@ static struct omap_opp_def __initdata omap34xx_opp_def_list[] = {
 	/* MPU OPP3 */
 	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 500000000, OMAP3430_VDD_MPU_OPP3_UV),
 	/* MPU OPP4 */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 550000000, OMAP3430_VDD_MPU_OPP4_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", false, 550000000, OMAP3430_VDD_MPU_OPP4_UV),
 	/* MPU OPP5 */
 	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 600000000, OMAP3430_VDD_MPU_OPP5_UV),
+	/* 800Mhz Overclock */
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 800000000, OMAP3430_VDD_MPU_OPP5_UV),
 
 	/*
 	 * L3 OPP1 - 41.5 MHz is disabled because: The voltage for that OPP is

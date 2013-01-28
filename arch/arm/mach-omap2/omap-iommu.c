@@ -100,7 +100,7 @@ static int __init omap_iommu_init(void)
 	struct omap_hwmod *oh;
 	struct omap_device *od;
 	struct omap_device_pm_latency *ohl;
-
+	/* TODO figure out why mpu_rt_va is invalid for isp. hwmod doesn't complain. */
 	return -ENODEV; //disable for now?
 	printk("entered init\n");
 	if (cpu_is_omap34xx()) {
@@ -123,7 +123,7 @@ static int __init omap_iommu_init(void)
 			printk("hwmod looked up\n");
 
 		printk("setting iobase\n");
-		data->io_base = oh->_mpu_rt_va;
+		data->io_base = oh->_mpu_rt_va; //dies here
 		printk("setting irq\n");
 		data->irq = oh->mpu_irqs[0].irq;
 

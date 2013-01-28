@@ -52,6 +52,8 @@
 #define MAPPHONE_WIFI_IRQ_GPIO 65
 
 char *bp_model = "CDMA";
+
+#if !defined(CONFIG_ARM_APPENDED_DTB)
 static char boot_mode[BOOT_MODE_MAX_LEN+1];
 
 int __init board_boot_mode_init(char *s)
@@ -62,6 +64,7 @@ int __init board_boot_mode_init(char *s)
 	return 1;
 }
 __setup("androidboot.mode=", board_boot_mode_init);
+#endif
 
 /* Flat dev tree address */
 #define ATAG_FLAT_DEV_TREE_ADDRESS 0xf100040A
@@ -70,7 +73,13 @@ struct tag_flat_dev_tree_address {
 	u32 size;
 };
 
-#if 0
+
+static const char *mapphone_dt_match[] __initconst = {
+	"moto,mapphone_",
+	NULL
+};
+
+
 static u32 fdt_start_address;
 static u32 fdt_size;
 
@@ -96,7 +105,7 @@ static int __init parse_tag_flat_dev_tree_address(const struct tag *tag)
 }
 
 __tagtable(ATAG_FLAT_DEV_TREE_ADDRESS, parse_tag_flat_dev_tree_address);
-#endif
+
 
 static struct omap2_hdq_platform_config mapphone_hdq_data = {
 	.mode = OMAP_SDQ_MODE,
@@ -260,17 +269,16 @@ static void __init omap_mapphone_init_early(void)
 	omap2_init_common_devices(JEDEC_JESD209A_sdrc_params,
 				   JEDEC_JESD209A_sdrc_params);
 
-#if 0
 	if (fdt_start_address) {
 		void *mem;
 		mem = __alloc_bootmem(fdt_size, __alignof__(int), 0);
 		BUG_ON(!mem);
 		memcpy(mem, (const void *)fdt_start_address, fdt_size);
 		initial_boot_params = (struct boot_param_header *)mem;
-		pr_info("Unflattening device tree: 0x%08x\n", (u32)mem);
+		pr_info("Unflattening device tree from ATAG: 0x%08x\n", (u32)mem);
 		unflatten_device_tree();
 	}
-#endif
+
 }
 
 
@@ -340,7 +348,7 @@ static struct omap_nand_platform_data board_nand_data = {
 	.gpmc_t		= &nand_timings, /* review these*/
 	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
 	.dev_ready	=  1,
-	.xfer_type	= 0, //NAND_OMAP_PREFETCH_IRQ,
+	.xfer_type	= NAND_OMAP_PREFETCH_IRQ, //0 also works but not from 2ndboot. Why?
 	.devsize	= NAND_BUSWIDTH_16,	/* '0' for 8-bit, '1' for 16-bit device */
 	.cs		= 0,
 	.parts		= nand_partitions,
@@ -359,7 +367,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 
 static void __init omap_mapphone_init(void)
 {
-	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB);
+	//omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //Necessary?
+
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
@@ -374,7 +383,6 @@ static void __init omap_mapphone_init(void)
 	mapphone_wifi_init();
 	mapphone_power_off_init();
 	mapphone_hsmmc_init();
-
 	gpmc_nand_init(&board_nand_data);
 
 	omap_enable_smartreflex_on_init();
@@ -383,6 +391,7 @@ static void __init omap_mapphone_init(void)
 	/* emu-uart function will override devtree iomux setting */
 	activate_emu_uart();
 #endif
+
 }
 
 static void __init mapphone_reserve(void)
@@ -401,4 +410,5 @@ MACHINE_START(MAPPHONE, "mapphone_")
 	.init_irq	= omap_init_irq,
 	.init_machine	= omap_mapphone_init,
 	.timer		= &omap_timer,
+	.dt_compat	= &mapphone_dt_match,
 MACHINE_END

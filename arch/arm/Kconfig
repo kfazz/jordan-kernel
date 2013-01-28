@@ -1706,6 +1706,9 @@ config USE_OF
 	help
 	  Include support for flattened device tree machine descriptions.
 
+config MOTOROLA_DTB
+	bool "Little Endian Device Tree Blob" if OF
+
 # Compressed boot loader in ROM.  Yes, we really want to ask about
 # TEXT and BSS so we preserve their values in the config files.
 config ZBOOT_ROM_TEXT
@@ -1770,6 +1773,17 @@ config ARM_APPENDED_DTB
 	  if you don't intend to always append a DTB.  Proper passing of the
 	  location into r2 of a bootloader provided DTB is always preferable
 	  to this option.
+
+config ARM_ATAG_DTB_COMPAT
+	bool "Supplement the appended DTB with traditional ATAG information"
+	depends on ARM_APPENDED_DTB
+	help
+	  Some old bootloaders can't be updated to a DTB capable one, yet
+	  they provide ATAGs with memory configuration, the ramdisk address,
+	  the kernel cmdline string, etc.  To allow a device tree enabled
+	  kernel to be used with such bootloaders, this option allows
+	  zImage to extract the information from the ATAG list and store it
+	  at run time into the appended DTB.
 
 config CMDLINE
 	string "Default kernel command string"

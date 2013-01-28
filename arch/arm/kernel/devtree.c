@@ -24,6 +24,8 @@
 #include <asm/mach/arch.h>
 #include <asm/mach-types.h>
 
+/*switched all be32_* to le_32* for sholes little-endian dt blob. TODO: make conditional on CONFIG_MOTOROLA_DTB */
+
 void __init early_init_dt_add_memory_arch(u64 base, u64 size)
 {
 	arm_add_memory(base, size);
@@ -43,7 +45,7 @@ void __init arm_dt_memblock_reserve(void)
 
 	/* Reserve the dtb region */
 	memblock_reserve(virt_to_phys(initial_boot_params),
-			 be32_to_cpu(initial_boot_params->totalsize));
+			 le32_to_cpu(initial_boot_params->totalsize));
 
 	/*
 	 * Process the reserve map.  This will probably overlap the initrd
@@ -51,10 +53,10 @@ void __init arm_dt_memblock_reserve(void)
 	 * doesn't hurt anything
 	 */
 	reserve_map = ((void*)initial_boot_params) +
-			be32_to_cpu(initial_boot_params->off_mem_rsvmap);
+			le32_to_cpu(initial_boot_params->off_mem_rsvmap);
 	while (1) {
-		base = be64_to_cpup(reserve_map++);
-		size = be64_to_cpup(reserve_map++);
+		base = le64_to_cpup(reserve_map++);
+		size = le64_to_cpup(reserve_map++);
 		if (!size)
 			break;
 		memblock_reserve(base, size);
@@ -86,7 +88,7 @@ struct machine_desc * __init setup_machine_fdt(unsigned int dt_phys)
 			printk("checkingvalid\n");
 
 	/* check device tree validity */
-	if (be32_to_cpu(devtree->magic) != OF_DT_HEADER) {
+	if (le32_to_cpu(devtree->magic) != OF_DT_HEADER) {
 		printk("devtree magic: %0x\n DT_HEADER: %0x\n",devtree->magic, OF_DT_HEADER);
 		return NULL;
 		}

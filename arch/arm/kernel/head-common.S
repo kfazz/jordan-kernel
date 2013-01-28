@@ -15,7 +15,7 @@
 #define ATAG_CORE_SIZE ((2*4 + 3*4) >> 2)
 #define ATAG_CORE_SIZE_EMPTY ((2*4) >> 2)
 
-#ifdef CONFIG_CPU_BIG_ENDIAN
+#if defined(CONFIG_CPU_BIG_ENDIAN) || defined(CONFIG_MOTOROLA_DTB) 
 #define OF_DT_MAGIC 0xd00dfeed
 #else
 #define OF_DT_MAGIC 0xedfe0dd0 /* 0xd00dfeed in big-endian */

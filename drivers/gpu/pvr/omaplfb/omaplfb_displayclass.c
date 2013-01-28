@@ -1106,38 +1106,29 @@ static OMAPLFB_ERROR OMAPLFBInitFBDev(OMAPLFB_DEVINFO *psDevInfo)
 
 	ulLCM = LCM(psLINFBInfo->fix.line_length, OMAPLFB_PAGE_SIZE);
 
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer physical address: 0x%lx\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->fix.smem_start));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer virtual address: 0x%lx\n",
-			psDevInfo->uiFBDevID, (unsigned long)psLINFBInfo->screen_base));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer size: %lu\n",
-			psDevInfo->uiFBDevID, FBSize));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer virtual width: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.xres_virtual));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer virtual height: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.yres_virtual));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer width: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.xres));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer height: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.yres));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: Framebuffer stride: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->fix.line_length));
-	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
-			": Device %u: LCM of stride and page size: %lu\n",
-			psDevInfo->uiFBDevID, ulLCM));
+	printk(": Device %u: Framebuffer physical address: 0x%lx\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->fix.smem_start);
+	printk(": Device %u: Framebuffer virtual address: 0x%lx\n",
+			psDevInfo->uiFBDevID, (unsigned long)psLINFBInfo->screen_base);
+	printk(": Device %u: Framebuffer size: %lu\n",
+			psDevInfo->uiFBDevID, FBSize);
+	printk(": Device %u: Framebuffer virtual width: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.xres_virtual);
+	printk(": Device %u: Framebuffer virtual height: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.yres_virtual);
+	printk(	": Device %u: Framebuffer width: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.xres);
+	printk(	": Device %u: Framebuffer height: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.yres);
+	printk(	": Device %u: Framebuffer stride: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->fix.line_length);
+	printk(	": Device %u: LCM of stride and page size: %lu\n",
+			psDevInfo->uiFBDevID, ulLCM);
 
 	
 	OMAPLFBPrintInfo(psDevInfo);
 
-#if defined(CONFIG_DSSCOMP)
+#if 0 // defined(CONFIG_DSSCOMP)
 	{
 		
 		int n = FBSize / RoundUpToMultiple(psLINFBInfo->fix.line_length * psLINFBInfo->var.yres, ulLCM);

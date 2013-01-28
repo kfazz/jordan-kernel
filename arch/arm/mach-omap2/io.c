@@ -323,7 +323,8 @@ static int __init _omap2_init_reprogram_sdrc(void)
 		return -EINVAL;
 
 	rate = clk_get_rate(dpll3_m2_ck);
-	//rate = 320000000;
+	/* TODO pick rate by boardtype. or maybe from dt?*/
+	rate = 320000000; //Hack for sholes
 	pr_info("Reprogramming SDRC clock to %ld Hz\n", rate);
 	v = clk_set_rate(dpll3_m2_ck, rate);
 	if (v)

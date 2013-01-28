@@ -65,6 +65,7 @@
 #endif
 #endif
 #include <../drivers/video/omap2/omapfb/omapfb.h>
+#include <linux/omapfb.h>
 
 #if defined(DEBUG)
 #define	PVR_DEBUG DEBUG
