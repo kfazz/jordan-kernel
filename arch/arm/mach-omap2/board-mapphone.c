@@ -200,11 +200,11 @@ int wifi_set_power(struct device *dev, int slot, int power_on, int vdd)
 		return 0;
 	power_state = power_on;
 	if (power_on) {
-		gpio_set_value(mapphone_wifi_pmena_gpio, 1);
+		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 1);
 		mdelay(15);
-		gpio_set_value(mapphone_wifi_pmena_gpio, 0);
+		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 0);
 		mdelay(1);
-		gpio_set_value(mapphone_wifi_pmena_gpio, 1);
+		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 1);
 		mdelay(70);
 	} else
 		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 0);
@@ -216,30 +216,30 @@ static void mapphone_wifi_init(void)
 	int ret;
 	printk("mapphone_wifi_init\n");
 
-	ret = gpio_request(mapphone_wifi_pmena_gpio, "wifi_pmena");
+	ret = gpio_request(MAPPHONE_WIFI_PMENA_GPIO, "wifi_pmena");
 	if (ret < 0) {
 		printk(KERN_ERR "%s: can't reserve GPIO: %ld\n", __func__,
-			mapphone_wifi_pmena_gpio);
+			MAPPHONE_WIFI_PMENA_GPIO);
 		return;
 	}
 
-	ret = gpio_request(mapphone_wifi_irq_gpio, "wifi_irq");
+	ret = gpio_request(MAPPHONE_WIFI_IRQ_GPIO, "wifi_irq");
 	if (ret < 0) {
 		printk(KERN_ERR "%s: can't reserve GPIO: %d\n", __func__,
-			mapphone_wifi_irq_gpio);
+			MAPPHONE_WIFI_IRQ_GPIO);
 		return;
 	}
 
-	gpio_direction_input(mapphone_wifi_irq_gpio);
-	gpio_direction_output(mapphone_wifi_pmena_gpio, 0);
-	mapphone_wlan_data.irq = OMAP_GPIO_IRQ(mapphone_wifi_irq_gpio);
+	gpio_direction_input(MAPPHONE_WIFI_IRQ_GPIO);
+	gpio_direction_output(MAPPHONE_WIFI_PMENA_GPIO, 0);
+	mapphone_wlan_data.irq = OMAP_GPIO_IRQ(MAPPHONE_WIFI_IRQ_GPIO);
 
 	if (wl12xx_set_platform_data(&mapphone_wlan_data)) {
 		pr_err("Error setting wl12xx data\n");
-out:
 	return;
 	}
 	printk("Wifi init done\n");
+	return;
 }
 
 static void __init mapphone_bp_model_init(void)
@@ -460,7 +460,7 @@ static void __init omap_mapphone_init(void)
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	regulator_has_full_constraints();
+	//regulator_has_full_constraints();
 	
 	omap_serial_init();
 	mapphone_bp_model_init();
@@ -476,11 +476,10 @@ static void __init omap_mapphone_init(void)
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
-	mapphone_wifi_init();
 	mapphone_power_off_init();
 	mapphone_hsmmc_init();
 	gpmc_nand_init(&board_nand_data);
-
+	//mapphone_wifi_init(); //Disabled until i check gpios, irqs, and mmmc slot
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 #ifdef CONFIG_EMU_UART_DEBUG

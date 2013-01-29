@@ -10,7 +10,6 @@ extern void __init mapphone_spi_init(void);
 extern void __init mapphone_als_init(void);
 extern void __init mapphone_i2c_init(void);
 extern void __init mapphone_padconf_init(void);
-extern void __init mapphone_flash_init(void);
 extern void __init mapphone_touch_panel_init(struct i2c_board_info *i2c_info);
 extern void __init mapphone_touch_btn_init(struct i2c_board_info *i2c_info);
 extern struct attribute_group *mapphone_touch_vkey_prop_attr_group;
