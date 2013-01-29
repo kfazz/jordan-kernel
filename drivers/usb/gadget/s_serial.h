@@ -9,8 +9,8 @@
  * either version 2 of that License or (at your option) any later version.
  */
 
-#ifndef __U_SERIAL_H
-#define __U_SERIAL_H
+#ifndef __S_SERIAL_H
+#define __S_SERIAL_H
 
 #include <linux/usb/composite.h>
 #include <linux/usb/cdc.h>
@@ -44,28 +44,10 @@ struct gserial {
 	/* notification callbacks */
 #ifdef CONFIG_USB_MOT_ANDROID
 	int (*tiocmset)(struct gserial *p, int set, int clear);
-	int (*tiocmget)(struct gserial *p);
 #endif
 	void (*connect)(struct gserial *p);
 	void (*disconnect)(struct gserial *p);
 	int (*send_break)(struct gserial *p, int duration);
 };
 
-/* utilities to allocate/free request and buffer */
-struct usb_request *gs_alloc_req(struct usb_ep *ep, unsigned len, gfp_t flags);
-void gs_free_req(struct usb_ep *, struct usb_request *req);
-
-/* port setup/teardown is handled by gadget driver */
-int gserial_setup(struct usb_gadget *g, unsigned n_ports);
-void gserial_cleanup(void);
-
-/* connect/disconnect is handled by individual functions */
-int gserial_connect(struct gserial *, u8 port_num);
-void gserial_disconnect(struct gserial *);
-
-/* functions are bound to configurations by a config or gadget driver */
-int acm_bind_config(struct usb_configuration *c, u8 port_num);
-int gser_bind_config(struct usb_configuration *c, u8 port_num);
-int obex_bind_config(struct usb_configuration *c, u8 port_num);
-
-#endif /* __U_SERIAL_H */
+#endif /* __S_SERIAL_H */

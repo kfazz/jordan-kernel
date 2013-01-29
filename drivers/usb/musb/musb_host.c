@@ -290,7 +290,8 @@ start:
 		dev_dbg(musb->controller, "Start TX%d %s\n", epnum,
 			hw_ep->tx_channel ? "dma" : "pio");
 
-		if (!hw_ep->tx_channel)
+		/* Ensure interrupt transfer always use PIO instead of DMA */
+		if (!hw_ep->tx_channel || (qh->type == USB_ENDPOINT_XFER_INT))
 			musb_h_tx_start(hw_ep);
 		else if (is_cppi_enabled() || tusb_dma_omap())
 			musb_h_tx_dma_start(hw_ep);
@@ -696,7 +697,11 @@ static void musb_ep_program(struct musb *musb, u8 epnum,
 
 	/* candidate for DMA? */
 	dma_controller = musb->dma_controller;
-	if (is_dma_capable() && epnum && dma_controller) {
+	if (is_dma_capable() && epnum && dma_controller
+		/* Don't use DMA for interrupt transfer, so to make sure bulk/iso
+		 * transfer can get DMA channel.
+		 */
+		&& (qh->type != USB_ENDPOINT_XFER_INT)) {
 		dma_channel = is_out ? hw_ep->tx_channel : hw_ep->rx_channel;
 		if (!dma_channel) {
 			dma_channel = dma_controller->channel_alloc(
@@ -1714,8 +1719,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 			val |= MUSB_RXCSR_DMAENAB;
 
 			/* autoclear shouldn't be set in high bandwidth */
-			/* Also don't use for OMAP3 per errata i426 */
-			if (!cpu_is_omap34xx() && qh->hb_mult == 1)
+			if (qh->hb_mult == 1)
 				val |= MUSB_RXCSR_AUTOCLEAR;
 
 			musb_writew(epio, MUSB_RXCSR,
@@ -2206,6 +2210,8 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	if (musb_ep_get_qh(qh->hw_ep, is_in) == qh) {
 		urb = next_urb(qh);
 
+		if (!urb)
+			goto exit;
 		/* make software (then hardware) stop ASAP */
 		if (!urb->unlinked)
 			urb->status = -ESHUTDOWN;
@@ -2267,6 +2273,7 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 	struct musb	*musb = hcd_to_musb(hcd);
 	u8		devctl;
 
+	wake_unlock(&musb->musb_wakelock);
 
 	if (!is_host_active(musb))
 		return 0;
@@ -2299,6 +2306,7 @@ static int musb_bus_resume(struct usb_hcd *hcd)
 {
 	struct musb     *musb = hcd_to_musb(hcd);
 
+	wake_lock(&musb->musb_wakelock);
 	/* resuming child port does the work */
 	return 0;
 }

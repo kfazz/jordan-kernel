@@ -1064,4 +1064,19 @@ config USB_G_WEBCAM
 
 endchoice
 
+config USB_MOT_ANDROID
+       tristate "MOTO Android Gadget"
+       help
+         The MOTO Android gadget provides mass storage, adb and ethernet
+         transport.
+
+         Say "y" to link the driver statically, or "m" to build a
+         dynamically linked module called "g_mot_android".
+
+config MOT_FEAT_SPY
+    boolean "mot gadget SPY serial function"
+    depends on USB_MOT_ANDROID
+    default n
+    help
+      Provides SPY serial function for mot gadget driver.
 endif # USB_GADGET
