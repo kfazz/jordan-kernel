@@ -1962,7 +1962,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	int			status;
 	struct musb		*musb;
 	struct musb_hdrc_platform_data *plat = dev->platform_data;
-
+	printk("musb_init_controller\n");
 	/* The driver might handle more features than the board; OK.
 	 * Fail when the board needs a feature that's not enabled.
 	 */
@@ -1971,11 +1971,13 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 		status = -ENODEV;
 		goto fail0;
 	}
+		printk("musb pdata ok\n");
 
 	/* allocate */
 	musb = allocate_instance(dev, plat->config, ctrl);
 	if (!musb) {
 		status = -ENOMEM;
+				printk("musb allocate instance FAILED\n");
 		goto fail0;
 	}
 
@@ -1998,15 +2000,17 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
          * code does is make sure a clock handle is available; platform
          * code manages it during start/stop and suspend/resume.
          */
+#if 0
         if (plat->clock) {
-                musb->clock = clk_get(dev, plat->clock);
+                musb->clock = clk_get(NULL, "hsotgusb_ick"); // clk_get(dev, plat->clock);
                 if (IS_ERR(musb->clock)) {
+			printk("musb clock FAILED\n");
                         status = PTR_ERR(musb->clock);
                         musb->clock = NULL;
                         goto fail1;
                 }
         }
-
+#endif
 
 	/* The musb_platform_init() call:
 	 *   - adjusts musb->mregs and musb->isr if needed,
@@ -2020,12 +2024,16 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	 * isp1504, non-OTG, etc) mostly hooking up through ULPI.
 	 */
 	musb->isr = generic_interrupt;
+	printk ("musb before plat init \n");
 	status = musb_platform_init(musb);
 	if (status < 0)
 		goto fail1;
 
+	printk ("after \n");
+
 	if (!musb->isr) {
 		status = -ENODEV;
+		printk("musb isr FAILED\n");
 		goto fail3;
 	}
 
@@ -2056,8 +2064,10 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	status = musb_core_init(plat->config->multipoint
 			? MUSB_CONTROLLER_MHDRC
 			: MUSB_CONTROLLER_HDRC, musb);
-	if (status < 0)
+	if (status < 0) {
+		printk("musb core_init FAILED\n");
 		goto fail3;
+		}
 
 #ifdef CONFIG_USB_MUSB_OTG
 	setup_timer(&musb->otg_timer, musb_otg_timer_func, (unsigned long) musb);
@@ -2107,7 +2117,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	 */
 	if (!is_otg_enabled(musb) && is_host_enabled(musb)) {
 		struct usb_hcd	*hcd = musb_to_hcd(musb);
-
+		printk("musb host only role\n");
 		status = usb_add_hcd(musb_to_hcd(musb), -1, 0);
 
 		hcd->self.uses_pio_for_control = 1;
@@ -2119,7 +2129,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 				? 'B' : 'A'));
 
 	} else /* peripheral is enabled */ {
-
+		printk("musb gadget role\n");
 		status = musb_gadget_setup(musb);
 
 		dev_dbg(musb->controller, "%s mode, status %d, dev%02x\n",
@@ -2128,8 +2138,10 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 			musb_readb(musb->mregs, MUSB_DEVCTL));
 
 	}
-	if (status < 0)
+	if (status < 0) {
+		printk("role setup FAILED\n");
 		goto fail3;
+	}
 
 	if (is_otg_enabled(musb) || is_host_enabled(musb))
 		wake_lock_init(&musb->musb_wakelock, WAKE_LOCK_SUSPEND,
@@ -2138,13 +2150,17 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	pm_runtime_put(musb->controller);
 
 	status = musb_init_debugfs(musb);
-	if (status < 0)
+	if (status < 0) {
+		printk("musb debugfs FAILED\n");
 		goto fail4;
+	}
 
 #ifdef CONFIG_SYSFS
 	status = sysfs_create_group(&musb->controller->kobj, &musb_attr_group);
-	if (status)
+	if (status) {
+		printk("musb sysfs FAILED\n");
 		goto fail5;
+	}
 #endif
 
 	dev_info(dev, "USB %s mode controller at %p using %s, IRQ %d\n",
@@ -2222,6 +2238,7 @@ static int __init musb_probe(struct platform_device *pdev)
 	/* clobbered by use_dma=n */
 	orig_dma_mask = dev->dma_mask;
 #endif
+	printk("musb_probe irq %d \n", irq);
 	status = musb_init_controller(dev, irq, base);
 	if (status < 0)
 		iounmap(base);

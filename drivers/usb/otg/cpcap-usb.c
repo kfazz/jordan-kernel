@@ -137,7 +137,7 @@ static int __init cpcap_usb_probe(struct platform_device *pdev)
 {
 	struct cpcap_usb	*cpcap;
 	int err;
-
+	printk("CPCAP usb probe entered\n");
 	cpcap = kzalloc(sizeof *cpcap, GFP_KERNEL);
 	if (!cpcap)
 		return -ENOMEM;

@@ -131,6 +131,7 @@ static int cpcap_usb_connected_probe(struct platform_device *pdev)
 		cpcap_musb_notifier_call(USB_EVENT_ID);
 #endif
 	} else {
+		printk(KERN_INFO "SW:CPCAP_ACCY %d Connected\n", pdata->accy);
 		android_usb_set_connected(1, pdata->accy);
 #if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
 		cpcap_musb_notifier_call(USB_EVENT_VBUS);
@@ -144,9 +145,7 @@ static int cpcap_usb_connected_remove(struct platform_device *pdev)
 {
 	struct cpcap_accy_platform_data *pdata = pdev->dev.platform_data;
 
-	if (pdata->accy == CPCAP_ACCY_USB_DEVICE)
-		printk(KERN_INFO "SW:CPCAP_ACCY_USB_DEVICE removed\n");
-	else
+		printk(KERN_INFO "SW:CPCAP_ACCY %d  removed\n", pdata->accy);
 		android_usb_set_connected(0, pdata->accy);
 
 #if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)

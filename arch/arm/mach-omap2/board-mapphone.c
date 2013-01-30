@@ -317,6 +317,26 @@ static void __init mapphone_bp_model_init(void)
              clk_enable(clkp);
              printk("sad2d_ick enabled\n");
 	}
+#if 0
+	clkp = clk_get(NULL, "l3_ick");
+		if (clkp) {
+             clk_enable(clkp);
+             printk("l3_ick enabled\n");
+	}
+
+	clkp = clk_get(NULL, "core_l3_ick");
+		if (clkp) {
+             clk_enable(clkp);
+             printk("core_l3_ick enabled\n");
+	}
+
+
+	clkp = clk_get(NULL, "hsotgusb_ick");
+		if (clkp) {
+             clk_enable(clkp);
+             printk("hsotgusb_ick enabled\n");
+	}
+#endif
 #endif
 }
 
