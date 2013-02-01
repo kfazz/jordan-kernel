@@ -15,7 +15,7 @@
  *
  */
 
-#define DEBUG 
+/* #define DEBUG */
 /* #define VERBOSE_DEBUG */
 
 #include <linux/init.h>
@@ -58,10 +58,29 @@
 #include "u_ether.c"
 #include "f_usbnet.c"
 
+#ifdef CONFIG_MOT_FEAT_SPY
+#include "f_spy.h"
+#endif
+
 MODULE_AUTHOR("Mike Lockwood");
 MODULE_DESCRIPTION("Android Composite USB Driver");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("1.0");
+
+/*Added to compile board-mapphone-usb.c */
+enum cpcap_accy {
+       CPCAP_ACCY_USB,
+       CPCAP_ACCY_FACTORY,
+       CPCAP_ACCY_CHARGER,
+       CPCAP_ACCY_WHISPER_PPD,
+       CPCAP_ACCY_WHISPER_SMART,
+       CPCAP_ACCY_USB_DEVICE,
+       CPCAP_ACCY_NONE,
+
+       /* Used while debouncing the accessory. */
+       CPCAP_ACCY_UNKNOWN,
+};
+
 
 struct android_usb_platform_data *andusb_plat;
 
@@ -140,6 +159,12 @@ static void android_unbind_config(struct usb_configuration *c);
 #define STRING_PRODUCT_IDX		1
 #define STRING_SERIAL_IDX		2
 
+#ifdef CONFIG_MOT_FEAT_SPY
+#define STRING_MANUFACTURER_SPY_IDX     3
+#define STRING_PRODUCT_SPY_IDX          4
+#define STRING_SERIAL_SPY_IDX           5
+#endif
+
 static char manufacturer_string[256];
 static char product_string[256];
 static char serial_string[256];
@@ -151,6 +176,11 @@ static struct usb_string strings_dev[] = {
 	[STRING_MANUFACTURER_IDX].s = manufacturer_string,
 	[STRING_PRODUCT_IDX].s = product_string,
 	[STRING_SERIAL_IDX].s = serial_string,
+#ifdef CONFIG_MOT_FEAT_SPY
+	[STRING_MANUFACTURER_SPY_IDX].s = "ST-Ericsson",
+	[STRING_PRODUCT_SPY_IDX].s = "ST-Ericsson TD-HSPA Driver",
+	[STRING_SERIAL_SPY_IDX].s = "000000-00-0000000",
+#endif
 	{  }			/* end of list */
 };
 
@@ -313,7 +343,7 @@ static char *get_function_name(struct android_dev *dev)
 	switch (dev->current_function_type) {
 	case CDROM:
 		/* cdrom */
-		//pid = android_usb_get_pid("cdrom");
+		pid = android_usb_get_pid("cdrom");
 		device_desc.idProduct = pid ? pid : 0x437f;
 		device_desc.bDeviceClass = USB_CLASS_PER_INTERFACE;
 		device_desc.bDeviceSubClass = USB_CLASS_PER_INTERFACE;
@@ -322,7 +352,7 @@ static char *get_function_name(struct android_dev *dev)
 		break;
 	case CDROM2:
 		/* cdrom2 */
-		//pid = android_usb_get_pid("cdrom2");
+		pid = android_usb_get_pid("cdrom2");
 		device_desc.idProduct = pid ? pid : 0x41ce;
 		device_desc.bDeviceClass = USB_CLASS_PER_INTERFACE;
 		device_desc.bDeviceSubClass = USB_CLASS_PER_INTERFACE;
@@ -331,7 +361,7 @@ static char *get_function_name(struct android_dev *dev)
 		break;
 	case MTPUSBNET:
 		/* mtpusbnet */
-		//pid = android_usb_get_pid("mtp,usbnet");
+		pid = android_usb_get_pid("mtp,usbnet");
 		device_desc.idProduct = pid ? pid : 0x4361;
 		device_desc.bDeviceClass = USB_CLASS_PER_INTERFACE;
 		device_desc.bDeviceSubClass = USB_CLASS_PER_INTERFACE;
@@ -340,7 +370,7 @@ static char *get_function_name(struct android_dev *dev)
 		break;
 	default:
 		/* mtpusbnet */
-		//pid = android_usb_get_pid("mtp,usbnet");
+		pid = android_usb_get_pid("mtp,usbnet");
 		device_desc.idProduct = pid ? pid : 0x4361;
 		device_desc.bDeviceClass = USB_CLASS_PER_INTERFACE;
 		device_desc.bDeviceSubClass = USB_CLASS_PER_INTERFACE;
@@ -369,7 +399,6 @@ static void android_enumeration_work(struct work_struct *data)
 	 * only umount when cdrom image was mounted,
 	 * and function type is "mtp,usbnet".
 	 */
-#if 0
 	if (dev->cdrom_mount && dev->current_function_type == MTPUSBNET) {
 		/* umount cdrom image */
 		pr_info("%s: MTPUSBNET, umount cdrom image\n", __func__);
@@ -379,7 +408,7 @@ static void android_enumeration_work(struct work_struct *data)
 		else
 			pr_err("%s: umount cdrom image fail\n", __func__);
 	}
-#endif
+
 
 	INIT_LIST_HEAD(&dev->enabled_functions);
 	strncpy(buf, get_function_name(dev), sizeof(buf));
@@ -463,6 +492,42 @@ static struct android_usb_function adb_function = {
 	.bind_config	= adb_function_bind_config,
 };
 
+
+#ifdef CONFIG_MOT_FEAT_SPY
+static int spy_function_init(struct android_usb_function *f,
+			struct usb_composite_dev *cdev)
+{
+	return spy_init(cdev);
+}
+
+static void spy_function_cleanup(struct android_usb_function *f)
+{
+	spy_cleanup();
+}
+
+static int spy_function_bind_config(struct android_usb_function *f,
+			struct usb_configuration *c)
+{
+	return spy_bind_config(c, 0);
+}
+
+static int spy_function_ctrlrequest(struct android_usb_function *f,
+			struct usb_composite_dev *cdev,
+			const struct usb_ctrlrequest *c)
+{
+	return spy_ctrlrequest(cdev, c);
+}
+
+static struct android_usb_function spy_function = {
+	.name       = "spy",
+	.init       = spy_function_init,
+	.cleanup    = spy_function_cleanup,
+	.bind_config    = spy_function_bind_config,
+	.ctrlrequest	= spy_function_ctrlrequest,
+};
+#endif
+
+
 #define MAX_ACM_INSTANCES 4
 struct acm_function_config {
 	int instances;
@@ -471,23 +536,18 @@ struct acm_function_config {
 static int acm_function_init(struct android_usb_function *f, struct usb_composite_dev *cdev)
 {
 	struct acm_function_config *acm_config;
-	printk("1\n");
+
 	f->config = kzalloc(sizeof(struct acm_function_config), GFP_KERNEL);
-		printk("2\n");
 	if (!f->config)
 		return -ENOMEM;
-		printk("3\n");
 	/*Set default enabled acm number to be 1.*/
 	acm_config = f->config;
-	#if 0
 	if (andusb_plat->bp_tools_mode)
 		acm_config->instances = 4;
 	else
 		/*Set default enabled acm number to be 1.*/
-	#endif
-		printk("4\n");
 		acm_config->instances = 1;
-	printk("5\n");
+
 	return gserial_setup(cdev->gadget, MAX_ACM_INSTANCES);
 }
 
@@ -802,14 +862,21 @@ static int mass_storage_function_init(struct android_usb_function *f,
 	struct mass_storage_function_config *config;
 	struct fsg_common *common;
 	int err;
+	int j;
+	char lunname[10];
 
 	config = kzalloc(sizeof(struct mass_storage_function_config),
 								GFP_KERNEL);
 	if (!config)
 		return -ENOMEM;
 
-	config->fsg.nluns = 1;
-	config->fsg.luns[0].removable = 1;
+	config->fsg.cdrom_lun_num = andusb_plat->cdrom_lun_num;
+	config->fsg.nluns = andusb_plat->nluns;
+	for (j = 0; j < andusb_plat->nluns; j++)
+		config->fsg.luns[j].removable = 1;
+
+	config->fsg.vendor_name = andusb_plat->vendor;
+	config->fsg.product_name = andusb_plat->product_name;
 
 
 	common = fsg_common_init(NULL, cdev, &config->fsg);
@@ -818,12 +885,16 @@ static int mass_storage_function_init(struct android_usb_function *f,
 		return PTR_ERR(common);
 	}
 
-	err = sysfs_create_link(&f->dev->kobj,
-				&common->luns[0].dev.kobj,
-				"lun");
-	if (err) {
-		kfree(config);
-		return err;
+	for (j = 0; j < andusb_plat->nluns; j++) {
+		sprintf(lunname, "lun%d", j);
+
+		err = sysfs_create_link(&f->dev->kobj,
+				&common->luns[j].dev.kobj,
+				lunname);
+		if (err) {
+			kfree(config);
+			return err;
+		}
 	}
 
 	config->common = common;
@@ -1059,6 +1130,9 @@ static struct android_usb_function *supported_functions[] = {
 	&mass_storage_function,
 	&accessory_function,
 	&usbnet_function,
+#ifdef CONFIG_MOT_FEAT_SPY
+	&spy_function,
+#endif
 	NULL
 };
 
@@ -1281,8 +1355,8 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 	printk("%s: set enable = %d; old enable = %d\n", __func__,
 			enabled, dev->enabled);
 
-	if (enabled && !dev->enabled) { 
-	/*	if (cable_type == CPCAP_ACCY_FACTORY) {
+	if (enabled && !dev->enabled) {
+		if (cable_type == CPCAP_ACCY_FACTORY) {
 			device_desc.idVendor = ID_VENDOR_MOTO;
 			if (pc_command_adb == PC_COMMAND_ADB_ON) {
 				strncpy(set_buf, "usbnet,adb", sizeof(set_buf));
@@ -1292,22 +1366,60 @@ static ssize_t enable_store(struct device *pdev, struct device_attribute *attr,
 				device_desc.idProduct = ID_PRODUCT_ETH;
 			}
 			functions_store(pdev, NULL, set_buf, sizeof(set_buf));
-		}  */
+		} else if (andusb_plat->bp_tools_mode) {
+			functions_len = functions_show(pdev, NULL, get_buf);
+			end_char_addr = &get_buf[0] + functions_len - 1;
+			*end_char_addr = 0;
+			if (strstr(get_buf, "adb") && strstr(get_buf, "rndis")) {
+				strncpy(set_buf, "rndis,acm,usbnet,adb", sizeof(set_buf));
+				device_desc.idProduct = ID_PRODUCT_RNDIS_ACM_ETH_ADB;
+			} else if (strstr(get_buf, "adb")) {
+				strncpy(set_buf, "acm,usbnet,adb", sizeof(set_buf));
+				device_desc.idProduct = ID_PRODUCT_ACM_ETH_ADB;
+			} else if (strstr(get_buf, "rndis")) {
+				strncpy(set_buf, "rndis,acm,usbnet", sizeof(set_buf));
+				device_desc.idProduct = ID_PRODUCT_RNDIS_ACM_ETH;
+			} else {
+				strncpy(set_buf, "acm,usbnet", sizeof(set_buf));
+				device_desc.idProduct = ID_PRODUCT_ACM_ETH;
+			}
+			functions_store(pdev, NULL, set_buf, sizeof(set_buf));
+		}
 
 		/* update values in composite driver's copy of device descriptor */
 		cdev->desc.idVendor = device_desc.idVendor;
 		functions_len = functions_show(pdev, NULL, get_buf);
 		end_char_addr = &get_buf[0] + functions_len - 1;
 		*end_char_addr = 0;
-
-		//pid = android_usb_get_pid(get_buf);
-		cdev->desc.idProduct = device_desc.idProduct;
+		if (dev->native_cdrom && !strcmp(get_buf, "mass_storage"))
+			strncpy(get_buf, "cdrom", sizeof(get_buf));
+		pid = android_usb_get_pid(get_buf);
+		cdev->desc.idProduct = pid ? pid : device_desc.idProduct;
 
 		cdev->desc.bcdDevice = device_desc.bcdDevice;
 		cdev->desc.bDeviceClass = device_desc.bDeviceClass;
 		cdev->desc.bDeviceSubClass = device_desc.bDeviceSubClass;
 		cdev->desc.bDeviceProtocol = device_desc.bDeviceProtocol;
 
+#ifdef CONFIG_MOT_FEAT_SPY
+		/* workaround for spy tracer.*/
+		if (!strcmp(get_buf, "spy")) {
+			cdev->desc.iManufacturer =
+				strings_dev[STRING_MANUFACTURER_SPY_IDX].id;
+			cdev->desc.iProduct =
+				strings_dev[STRING_PRODUCT_SPY_IDX].id;
+			cdev->desc.iSerialNumber =
+				strings_dev[STRING_SERIAL_SPY_IDX].id;
+			cdev->desc.bcdDevice = __constant_cpu_to_le16(0x0100);
+			cdev->desc.bDeviceClass = USB_CLASS_COMM;
+			cdev->desc.bDeviceSubClass = USB_CLASS_PER_INTERFACE;
+			cdev->desc.bDeviceProtocol = USB_CLASS_PER_INTERFACE;
+
+			android_config_driver.iConfiguration = 0;
+			android_config_driver.bmAttributes = USB_CONFIG_ATT_ONE;
+			android_config_driver.bMaxPower = 0x02;
+		}
+#endif
 		usb_add_config(cdev, &android_config_driver,
 					android_bind_config);
 		usb_gadget_connect(cdev->gadget);
@@ -1484,15 +1596,42 @@ static int android_bind(struct usb_composite_dev *cdev)
 	device_desc.iProduct = id;
 
 	/* Default strings - should be updated by userspace */
-	strncpy(manufacturer_string, "Android", sizeof(manufacturer_string) - 1);
-	strncpy(product_string, "Android", sizeof(product_string) - 1);
-	strncpy(serial_string, "0123456789ABCDEF", sizeof(serial_string) - 1);
+	strncpy(manufacturer_string, andusb_plat->vendor,
+				sizeof(manufacturer_string) - 1);
+	strncpy(product_string, andusb_plat->product_name,
+				sizeof(product_string) - 1);
+	strncpy(serial_string, andusb_plat->device_serial,
+				MAX_USB_SERIAL_NUM - 1);
+	strncpy(cdrom_blkdev_path, "/dev/block/cdrom", sizeof(cdrom_blkdev_path));
+
+	/* init CDROM state */
+	dev->current_function_type = CDROM;
+	dev->cdrom_enable = 0;
+	dev->cdrom_mount = 0;
+	dev->native_cdrom = 0;
 
 	id = usb_string_id(cdev);
 	if (id < 0)
 		return id;
 	strings_dev[STRING_SERIAL_IDX].id = id;
 	device_desc.iSerialNumber = id;
+
+#ifdef CONFIG_MOT_FEAT_SPY
+	id = usb_string_id(cdev);
+	if (id < 0)
+		return id;
+	strings_dev[STRING_MANUFACTURER_SPY_IDX].id = id;
+
+	id = usb_string_id(cdev);
+	if (id < 0)
+		return id;
+	strings_dev[STRING_PRODUCT_SPY_IDX].id = id;
+
+	id = usb_string_id(cdev);
+	if (id < 0)
+		return id;
+	strings_dev[STRING_SERIAL_SPY_IDX].id = id;
+#endif
 
 	gcnum = usb_gadget_controller_number(gadget);
 	if (gcnum >= 0)

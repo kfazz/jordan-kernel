@@ -21,9 +21,10 @@
 #include <linux/led-lm3530.h>
 #include <linux/skbuff.h>
 #include <linux/ti_wilink_st.h>
-#include <plat/omap-serial.h>
-#include <plat/omap_hsi.h>
 #include <linux/wl12xx.h>
+#include <linux/regulator/machine.h>
+
+#include <../drivers/w1/w1_family.h> /* for W1_EEPROM_DS2502 */
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -35,6 +36,12 @@
 #include <plat/system.h>
 #include <plat/mux.h>
 #include <plat/hdq.h>
+#include <plat/omap-serial.h>
+#include <plat/omap_hsi.h>
+
+#ifdef CONFIG_EMU_UART_DEBUG
+#include <plat/board-mapphone-emu_uart.h>
+#endif
 
 #include <mach/board-mapphone.h>
 
@@ -45,16 +52,14 @@
 #include "dt_path.h"
 #include "pm.h"
 #include "hsmmc.h"
+#include "omap_ram_console.h"
 
-#ifdef CONFIG_EMU_UART_DEBUG
-#include <plat/board-mapphone-emu_uart.h>
-#endif
-#include <../drivers/w1/w1_family.h> /* for W1_EEPROM_DS2502 */
 
 #define WILINK_UART_DEV_NAME "/dev/ttyO3"
 #define MAPPHONE_POWER_OFF_GPIO 176
-#define MAPPHONE_WIFI_PMENA_GPIO 186
-#define MAPPHONE_WIFI_IRQ_GPIO 65
+
+#define MAPPHONE_WIFI_PMENA_GPIO 179 //nshutdown
+#define MAPPHONE_WIFI_IRQ_GPIO 178 // hostwake
 
 char *bp_model = "CDMA";
 
@@ -140,10 +145,10 @@ static void __init mapphone_musb_init(void)
 	struct device_node *node;
 	const void *prop;
 	int size;
-	int use_utmi = 0;
-	u16 power = 0;
+	int use_utmi = 1;
+	u16 power = 100;
 	node = of_find_node_by_path(DT_HIGH_LEVEL_FEATURE);
-
+#define DEBUG
 	if (node) {
 		prop = of_get_property(node, "feature_musb_utmi", &size);
 		if (prop && size) {
@@ -167,10 +172,10 @@ static void __init mapphone_musb_init(void)
 		of_node_put(node);
 	}
 
-	if (use_utmi)
+//	if (use_utmi)
 		musb_board_data.interface_type = MUSB_INTERFACE_UTMI;
 
-	if (power > 100 && power <= 500 )
+//	if (power > 100 && power <= 500 )
 		musb_board_data.power = power;
 
 	usb_musb_init(&musb_board_data);
@@ -507,7 +512,7 @@ static struct omap_nand_platform_data board_nand_data = {
 	.gpmc_t		= &nand_timings, /* review these*/
 	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
 	.dev_ready	=  1,
-	.xfer_type	= NAND_OMAP_PREFETCH_IRQ, //0 also works but not from 2ndboot. Why?
+	.xfer_type	= 0, // need polled mode for apanic //NAND_OMAP_PREFETCH_IRQ, //0 also works but not from 2ndboot. Why?
 	.devsize	= NAND_BUSWIDTH_16,	/* '0' for 8-bit, '1' for 16-bit device */
 	.cs		= 0,
 	.parts		= nand_partitions,
@@ -524,6 +529,38 @@ static struct omap_board_mux board_mux[] __initdata = {
 #define board_mux	NULL
 #endif
 
+#ifdef CONFIG_ANDROID_RAM_CONSOLE
+#define RAM_CONSOLE_START   0x8E000000
+#define RAM_CONSOLE_SIZE    0x20000
+static struct resource ram_console_resource = {
+       .start  = RAM_CONSOLE_START,
+       .end    = (RAM_CONSOLE_START + RAM_CONSOLE_SIZE - 1),
+       .flags  = IORESOURCE_MEM,
+};
+
+static struct platform_device ram_console_device = {
+       .name = "ram_console",
+       .id = 0,
+       .num_resources  = 1,
+       .resource       = &ram_console_resource,
+};
+
+static inline void mapphone_ramconsole_init(void)
+{
+	platform_device_register(&ram_console_device);
+}
+
+static inline void omap2_ramconsole_reserve_sdram(void)
+{
+	reserve_bootmem(RAM_CONSOLE_START, RAM_CONSOLE_SIZE, 0);
+}
+#else
+static inline void sholes_ramconsole_init(void) {}
+
+static inline void omap2_ramconsole_reserve_sdram(void) {}
+#endif
+
+
 static void __init omap_mapphone_init(void)
 {
 
@@ -534,7 +571,7 @@ static void __init omap_mapphone_init(void)
 	* should be set in the board file. Before regulators are registered.
 	*/
 	//regulator_has_full_constraints();
-	
+
 	omap_serial_init();
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
@@ -545,27 +582,41 @@ static void __init omap_mapphone_init(void)
 	platform_add_devices(mapphone_devices, ARRAY_SIZE(mapphone_devices));
 	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
 	mapphone_spi_init();
+#ifdef CONFIG_EMU_UART_DEBUG
+	/* emu-uart function will override devtree iomux setting */
+	activate_emu_uart();
+#endif
+	mapphone_mdm_ctrl_init();
 	mapphone_cpcap_client_init();
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
 	mapphone_usbhost_init();
 	mapphone_musb_init();
+
+
+
 	mapphone_power_off_init();
 	mapphone_hsmmc_init();
 	gpmc_nand_init(&board_nand_data);
-	//mapphone_wifi_init(); //Disabled until i check gpios, irqs, and mmmc slot
+	mapphone_wifi_init(); //Disabled until i check gpios, irqs, and mmmc slot
+
+
+	
+
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
-#ifdef CONFIG_EMU_UART_DEBUG
-	/* emu-uart function will override devtree iomux setting */
-	activate_emu_uart();
-#endif
+	mapphone_gadget_init();
 
+
+	//mapphone_ramconsole_init();
 }
 
 static void __init mapphone_reserve(void)
 {
+	//omap2_ramconsole_reserve_sdram();
+	omap_ram_console_init(PLAT_PHYS_OFFSET + 0x8E00000,0x200000); //  0x0x9000000  0x8E00000 0x200000
+
 #ifdef CONFIG_ION_OMAP
 	omap_ion_init();
 #endif

@@ -26,7 +26,7 @@
 #include <linux/usb/mdm6600_usb.h>
 #include <plat/omap-pm.h>
 
-#if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
+#if defined(CONFIG_USB_MUSB_OTG)
 #include <linux/spi/cpcap.h>
 #include <linux/usb/musb.h>
 #include <linux/usb/composite.h>
@@ -47,7 +47,17 @@
 #define EHCI_IRQ                        (77 + OMAP44XX_IRQ_GIC_START)
 
 void cpcap_musb_notifier_call(unsigned long event);
-#if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
+#if defined(CONFIG_USB_MUSB_OTG)
+enum cpcap_accy {
+	CPCAP_ACCY_USB,
+	CPCAP_ACCY_FACTORY,
+	CPCAP_ACCY_CHARGER,
+	CPCAP_ACCY_NONE,
+
+	/* Used while debouncing the accessory. */
+	CPCAP_ACCY_UNKNOWN,
+};
+
 struct cpcap_accy_platform_data {
 	enum cpcap_accy accy;
 };
@@ -112,14 +122,15 @@ static struct platform_device android_usb_platform_device = {
 		.platform_data = &andusb_plat,
 	},
 };
-
+#if 0
 static int cpcap_usb_connected_probe(struct platform_device *pdev)
 {
 	struct cpcap_accy_platform_data *pdata = pdev->dev.platform_data;
-
+#if defined(CONFIG_USB_MUSB_OTG)
+#if 0
 	if (pdata->accy == CPCAP_ACCY_USB_DEVICE) {
-		printk(KERN_INFO "SW:CPCAP_ACCY_USB_DEVICE Connected\n");
-#if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
+		printk(KERN_INFO "SW:CPCAP_ACCY_USB_DEVICE %d Connected\n", pdata->accy);
+
 		/*
 		 * First time connection in host mode fails in several
 		 * cases due to dock issues. Retrying again fixes the issue.
@@ -129,15 +140,13 @@ static int cpcap_usb_connected_probe(struct platform_device *pdev)
 		cpcap_musb_notifier_call(USB_EVENT_NONE);
 		msleep(5);
 		cpcap_musb_notifier_call(USB_EVENT_ID);
-#endif
+
 	} else {
-		printk(KERN_INFO "SW:CPCAP_ACCY %d Connected\n", pdata->accy);
-		android_usb_set_connected(1, pdata->accy);
-#if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
+#endif
+		printk(KERN_INFO "SW:CPCAP_ACCY %d Connected\n",pdata->accy);
+		android_usb_set_connected(1, pdata->accy); 
 		cpcap_musb_notifier_call(USB_EVENT_VBUS);
 #endif
-	}
-
 	return 0;
 }
 
@@ -145,14 +154,26 @@ static int cpcap_usb_connected_remove(struct platform_device *pdev)
 {
 	struct cpcap_accy_platform_data *pdata = pdev->dev.platform_data;
 
-		printk(KERN_INFO "SW:CPCAP_ACCY %d  removed\n", pdata->accy);
+		printk(KERN_INFO "SW:CPCAP_ACCY %d removed\n",pdata->accy); 
 		android_usb_set_connected(0, pdata->accy);
-
-#if defined(CONFIG_USB_MOT_ANDROID) && defined(CONFIG_USB_MUSB_OTG)
 	cpcap_musb_notifier_call(USB_EVENT_NONE);
-#endif
-
 	return 0;
+}
+#endif
+static int cpcap_usb_connected_probe(struct platform_device *pdev)
+{
+printk("USB Connected!\n");
+android_usb_set_connected(1,0);//usb
+	cpcap_musb_notifier_call(USB_EVENT_VBUS);
+return 0;
+}
+
+static int cpcap_usb_connected_remove(struct platform_device *pdev)
+{
+printk("USB Disconnected!\n");
+android_usb_set_connected(0,3); //None
+	cpcap_musb_notifier_call(USB_EVENT_NONE);
+return 0;
 }
 
 static struct platform_driver cpcap_usb_connected_driver = {
@@ -341,23 +362,26 @@ void mapphone_get_serial_number(void)
 	else
 		reg = DIE_ID_REG_BASE + DIE_ID_REG_OFFSET;
 
-	val[0] = omap_readl(reg);
+	//val[0] = omap_readl(reg); //crashes with another data abort
+	
 
 	if (cpu_is_omap44xx())
 		/* OMAP4 has the id_code register at die_id_0 + 4*/
 		val[1] = omap_readl(reg + 8);
 	else
-		val[1] = omap_readl(reg + 4);
+		//val[1] = omap_readl(reg + 4);
+	val[1] = 0x12345678;
+	val[0] = 0x90abcdef;
 
 	snprintf(andusb_plat.device_serial, MAX_USB_SERIAL_NUM, "%08X%08X",
 					val[1], val[0]);
 
 }
 
-void mapphone_gadget_init(char *boot_mode)
+void mapphone_gadget_init(void)
 {
-	if (!strncmp(boot_mode, "bp-tools", BOOT_MODE_MAX_LEN))
-		andusb_plat.bp_tools_mode = 1;
+	//if (!strncmp(boot_mode, "bp-tools", BOOT_MODE_MAX_LEN))
+	//	andusb_plat.bp_tools_mode = 1;
 
 	andusb_plat.performance_mode = set_usb_performance_mode;
 
@@ -505,6 +529,7 @@ static struct usbhs_omap_board_data usbhs_bdata  = {
 	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL,
 	.ehci_phy_vbus_not_used = false,
+	.es2_compatibility = true,
 };
 
 

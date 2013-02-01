@@ -25,6 +25,7 @@
 #include <plat/hardware.h>
 #include <plat/hdq.h>
 
+
 #include "../w1.h"
 #include "../w1_int.h"
 
@@ -83,7 +84,7 @@ struct hdq_data {
 	int			init_trans;
 };
 
-static int __devinit omap_hdq_probe(struct platform_device *pdev);
+static int __init omap_hdq_probe(struct platform_device *pdev);
 static int omap_hdq_remove(struct platform_device *pdev);
 
 static struct platform_driver omap_hdq_driver = {
@@ -426,16 +427,9 @@ rtn:
 /* Enable clocks and set the controller to HDQ mode */
 static int omap_hdq_get(struct hdq_data *hdq_data)
 {
-	struct platform_device *pdev;
-	struct omap_hdq_platform_data *pdata;
 	int ret = 0;
 	u8 init_val = OMAP_HDQ_CTRL_STATUS_CLOCKENABLE |
 		OMAP_HDQ_CTRL_STATUS_INTERRUPTMASK;
-
-	pdev = container_of(hdq_data->dev, struct platform_device, dev);
-
-	pdev = container_of(hdq_data->dev, struct platform_device, dev);
-	pdata = hdq_data->dev->platform_data;
 
 	ret = mutex_lock_interruptible(&hdq_data->hdq_mutex);
 	if (ret < 0) {
@@ -451,7 +445,17 @@ static int omap_hdq_get(struct hdq_data *hdq_data)
 		hdq_data->hdq_usecount++;
 		try_module_get(THIS_MODULE);
 		if (1 == hdq_data->hdq_usecount) {
-			pm_runtime_get_sync(&pdev->dev);
+			if (clk_enable(hdq_data->hdq_ick)) {
+				dev_err(hdq_data->dev, "Can not enable ick\n");
+				ret = -ENODEV;
+				goto clk_err;
+			}
+			if (clk_enable(hdq_data->hdq_fck)) {
+				dev_err(hdq_data->dev, "Can not enable fck\n");
+				clk_disable(hdq_data->hdq_ick);
+				ret = -ENODEV;
+				goto clk_err;
+			}
 
 			/* make sure HDQ is out of reset */
 			if (!(hdq_reg_in(hdq_data, OMAP_HDQ_SYSSTATUS) &
@@ -476,6 +480,9 @@ static int omap_hdq_get(struct hdq_data *hdq_data)
 		goto out;
 	}
 
+clk_err:
+	clk_put(hdq_data->hdq_ick);
+	clk_put(hdq_data->hdq_fck);
 out:
 	mutex_unlock(&hdq_data->hdq_mutex);
 rtn:
@@ -485,12 +492,7 @@ rtn:
 /* Disable clocks to the module */
 static int omap_hdq_put(struct hdq_data *hdq_data)
 {
-	struct platform_device *pdev;
-	struct omap_hdq_platform_data *pdata;
 	int ret = 0;
-
-	pdev = container_of(hdq_data->dev, struct platform_device, dev);
-	pdata = hdq_data->dev->platform_data;
 
 	ret = mutex_lock_interruptible(&hdq_data->hdq_mutex);
 	if (ret < 0)
@@ -503,8 +505,10 @@ static int omap_hdq_put(struct hdq_data *hdq_data)
 	} else {
 		hdq_data->hdq_usecount--;
 		module_put(THIS_MODULE);
-		if (0 == hdq_data->hdq_usecount)
-			pm_runtime_put_sync(&pdev->dev);
+		if (0 == hdq_data->hdq_usecount) {
+			clk_disable(hdq_data->hdq_ick);
+			clk_disable(hdq_data->hdq_fck);
+		}
 	}
 	mutex_unlock(&hdq_data->hdq_mutex);
 
@@ -602,7 +606,7 @@ static void omap_w1_write_byte(void *_hdq, u8 byte)
 		return;
 	}
 
-	/* Second write, data transferred. Release the module */
+	/* Second write, data transfered. Release the module */
 	if ((hdq_data->init_trans > 1) || (is_sdq(hdq_data))) {
 		omap_hdq_put(hdq_data);
 		ret = mutex_lock_interruptible(&hdq_data->hdq_mutex);
@@ -678,15 +682,12 @@ rtn:
 	return ret;
 }
 
-static int __devinit omap_hdq_probe(struct platform_device *pdev)
+static int __init omap_hdq_probe(struct platform_device *pdev)
 {
 	struct hdq_data *hdq_data;
 	struct resource *res;
-	struct omap_hdq_platform_data *pdata;
 	int ret, irq;
 	u8 rev;
-
-	pdata = pdev->dev.platform_data;
 
 	hdq_data = kmalloc(sizeof(*hdq_data), GFP_KERNEL);
 	if (!hdq_data) {
@@ -712,12 +713,37 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
 		goto err_ioremap;
 	}
 
+	/* get interface & functional clock objects */
+	hdq_data->hdq_ick = clk_get(&pdev->dev, "ick");
+	hdq_data->hdq_fck = clk_get(&pdev->dev, "fck");
+
+	if (IS_ERR(hdq_data->hdq_ick) || IS_ERR(hdq_data->hdq_fck)) {
+		dev_err(&pdev->dev, "Can't get HDQ clock objects\n");
+		if (IS_ERR(hdq_data->hdq_ick)) {
+			ret = PTR_ERR(hdq_data->hdq_ick);
+			goto err_clk;
+		}
+		if (IS_ERR(hdq_data->hdq_fck)) {
+			ret = PTR_ERR(hdq_data->hdq_fck);
+			clk_put(hdq_data->hdq_ick);
+			goto err_clk;
+		}
+	}
+
 	hdq_data->hdq_usecount = 0;
 	mutex_init(&hdq_data->hdq_mutex);
 
-	/* enable runtime pm and enable module */
-	pm_runtime_enable(&pdev->dev);
-	pm_runtime_get_sync(&pdev->dev);
+	if (clk_enable(hdq_data->hdq_ick)) {
+		dev_err(&pdev->dev, "Can not enable ick\n");
+		ret = -ENODEV;
+		goto err_intfclk;
+	}
+
+	if (clk_enable(hdq_data->hdq_fck)) {
+		dev_err(&pdev->dev, "Can not enable fck\n");
+		ret = -ENODEV;
+		goto err_fnclk;
+	}
 
 	rev = hdq_reg_in(hdq_data, OMAP_HDQ_REVISION);
 	dev_info(&pdev->dev, "OMAP HDQ Hardware Rev %c.%c. Driver in %s mode\n",
@@ -737,12 +763,11 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
 		goto err_irq;
 	}
 
-	omap_hdq_get(hdq_data);
 	omap_hdq_break(hdq_data);
-	omap_hdq_put(hdq_data);
 
 	/* don't clock the HDQ until it is needed */
-	pm_runtime_put_sync(&pdev->dev);
+	clk_disable(hdq_data->hdq_ick);
+	clk_disable(hdq_data->hdq_fck);
 
 	omap_w1_master.data = hdq_data;
 
@@ -756,8 +781,16 @@ static int __devinit omap_hdq_probe(struct platform_device *pdev)
 
 err_w1:
 err_irq:
-	pm_runtime_put_sync(&pdev->dev);
-	pm_runtime_disable(&pdev->dev);
+	clk_disable(hdq_data->hdq_fck);
+
+err_fnclk:
+	clk_disable(hdq_data->hdq_ick);
+
+err_intfclk:
+	clk_put(hdq_data->hdq_ick);
+	clk_put(hdq_data->hdq_fck);
+
+err_clk:
 	iounmap(hdq_data->hdq_base);
 
 err_ioremap:
@@ -784,8 +817,9 @@ static int omap_hdq_remove(struct platform_device *pdev)
 
 	mutex_unlock(&hdq_data->hdq_mutex);
 
-	pm_runtime_disable(&pdev->dev);
-
+	/* remove module dependency */
+	clk_put(hdq_data->hdq_ick);
+	clk_put(hdq_data->hdq_fck);
 	free_irq(INT_24XX_HDQ_IRQ, hdq_data);
 	platform_set_drvdata(pdev, NULL);
 	iounmap(hdq_data->hdq_base);

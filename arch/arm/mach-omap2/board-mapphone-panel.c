@@ -85,17 +85,16 @@ static struct omap_video_timings mapphone_panel_timings = {
 	.x_res          = 480,
 	.y_res          = 854,
 	/*.pixel_clock  = 25000,*/
-	.hfp            = 44,
+	.hfp            = 0,
 	.hsw            = 2,
-	.hbp            = 38,
-	.vfp            = 1,
+	.hbp            = 2,
+	.vfp            = 0,
 	.vsw            = 1,
-	.vbp            = 1,
 };
 
 static struct mapphone_dsi_panel_data mapphone_panel_data = {
 	.name			= "mapphone",
-	.reset_gpio		= 136,
+	.reset_gpio		= 0,
 	.rst_delay_after_pwr	= 10,
 	/*
 	 * Change default delay of RESET HIGH to 1st cmd from min 10 to 15ms.
@@ -117,7 +116,6 @@ static struct mapphone_dsi_panel_data mapphone_panel_data = {
 	.te_type		= OMAP_DSI_TE_MIPI_PHY,
 	.cmoste_wr		= false,
 	.ftr_support.som	= false,
-
 };
 
 static struct omap_dss_device mapphone_lcd_device = {
@@ -145,7 +143,6 @@ static struct omap_dss_device mapphone_lcd_device = {
 	.phy.dsi.type = OMAP_DSS_DSI_TYPE_CMD_MODE,
 	.platform_enable = mapphone_panel_enable,
 	.platform_disable = mapphone_panel_disable,
-	.panel.panel_id = 0x000a0001,
 };
 
 /* It must be matched with device_tree,
@@ -570,6 +567,12 @@ static int mapphone_dt_get_dsi_panel_info(void)
 
 	PANELDBG("dt_get_dsi_panel_info()\n");
 
+	/* return err if fail to open DT */
+	panel_node = of_find_node_by_path(DT_PATH_DISPLAY1);
+	if (panel_node == NULL) {
+		r = -ENODEV;
+		goto err;
+	}
 
 	/* Retrieve the panel information */
 	panel_prop = of_get_property(panel_node, "dsi_clk_lane", NULL);
@@ -1014,7 +1017,79 @@ static int mapphone_dt_get_lvds_panel_info(void)
 	return 0;
 }
 
+static int mapphone_dt_get_hdtv_info(void)
+{
+	struct device_node *panel_node;
+	const void *panel_prop;
+	struct omap_ovl2mgr_mapping *read_ovl2mgr_mapping = NULL;
+	int len = 0, i = 0;
 
+	PANELDBG("dt_get_hdtv_info()\n");
+
+	/* return err if fail to open DT */
+	panel_node = of_find_node_by_path(DT_PATH_DISPLAY2);
+	if (panel_node == NULL)
+		return -ENODEV;
+
+	panel_prop = of_get_property(panel_node, "max_width", NULL);
+	if (panel_prop != NULL)
+		mapphone_hdtv_device.panel.timings.x_res = *(u32 *)panel_prop;
+
+	panel_prop = of_get_property(panel_node, "max_height", NULL);
+	if (panel_prop != NULL)
+		mapphone_hdtv_device.panel.timings.y_res = *(u32 *)panel_prop;
+
+	if (mapphone_hdtv_device.panel.timings.x_res > 2048)
+		mapphone_hdtv_device.panel.timings.x_res = 1920;
+
+	if (mapphone_hdtv_device.panel.timings.y_res > 2048)
+		mapphone_hdtv_device.panel.timings.x_res = 1080;
+
+	PANELDBG("Getting the xres = %u yres = %u\n",
+		mapphone_hdtv_device.panel.timings.x_res,
+		mapphone_hdtv_device.panel.timings.y_res);
+
+	panel_prop = of_get_property(panel_node, "gpio_pwr_en", NULL);
+	if (panel_prop != NULL) {
+		hpd_en_config.gpio = *(u32 *)panel_prop;
+		platform_add_devices(hdmi_regulator_devices,
+		    ARRAY_SIZE(hdmi_regulator_devices));
+
+	} else {
+		PANELDBG("Getting the property gpio_pwr_en failed");
+	}
+
+	panel_prop = of_get_property(panel_node, "dac_reg_name", NULL);
+	if (panel_prop != NULL) {
+		strncpy(mapphone_hdmi_dac_reg_name,
+				(char *)panel_prop,
+				(HDMI_DAC_REGULATOR_NAME_SIZE));
+		mapphone_hdmi_dac_reg_name \
+			[HDMI_DAC_REGULATOR_NAME_SIZE] = '\0';
+	}
+
+	of_node_put(panel_node);
+	return 0;
+}
+
+static int mapphone_dt_get_feature_info(void)
+{
+	struct device_node *panel_node;
+	const void *panel_prop;
+
+	PANELDBG("dt_get_feature_info()\n");
+
+	/* return err if fail to open DT */
+	panel_node = of_find_node_by_path(DT_HIGH_LEVEL_FEATURE);
+	if (panel_node == NULL)
+		return -ENODEV;
+
+	panel_prop = of_get_property(panel_node, "feature_hdmi", NULL);
+	if (panel_prop != NULL)
+		mapphone_feature_hdmi = *(u8 *)panel_prop;
+
+	return 0;
+}
 
 static void panel_print_dt(void)
 {
@@ -1074,7 +1149,10 @@ static int __init mapphone_dt_panel_init(void)
 	PANELDBG("dt_panel_init\n");
 
 	if (mapphone_panel_device_read_dt == false) {
-		 if (mapphone_dt_get_dsi_panel_info() != 0) {
+		if (mapphone_dt_get_feature_info() != 0) {
+			PANELERR("failed to parse feature info\n");
+			ret = -ENODEV;
+		} else if (mapphone_dt_get_dsi_panel_info() != 0) {
 			PANELERR("failed to parse DSI panel info\n");
 			ret = -ENODEV;
 		} else if ((mapphone_lcd_device.phy.dsi.type ==
@@ -1095,6 +1173,12 @@ static int __init mapphone_dt_panel_init(void)
 		} else if (mapphone_dt_get_panel_feature() != 0) {
 			PANELERR("failed to parse panel feature info\n");
 			ret = -ENODEV;
+#ifndef CONFIG_MACH_OMAP_MAPPHONE_DEFY
+		} else if (mapphone_feature_hdmi &&
+				mapphone_dt_get_hdtv_info() != 0) {
+			PANELERR("failed to parse hdtv info\n");
+			ret = -ENODEV;
+#endif
 		} else {
 			mapphone_panel_device_read_dt = true;
 		}
@@ -1105,8 +1189,84 @@ static int __init mapphone_dt_panel_init(void)
 }
 
 
+static int mapphone_panel_enable_hdtv(struct omap_dss_device *dssdev)
+{
+	int rc = 0;
 
+	PANELDBG("mapphone_panel_enable_hdtv\n");
 
+	if (!mapphone_hdmi_dac_reg) {
+		if (mapphone_hdmi_dac_reg_name[0] == 0) {
+			PANELERR("No HDMI regulator defined\n");
+			rc = -1;
+			goto exit;
+		}
+		mapphone_hdmi_dac_reg = regulator_get(NULL,
+					mapphone_hdmi_dac_reg_name);
+		if (IS_ERR(mapphone_hdmi_dac_reg)) {
+			PANELERR("Failed HDMI regulator_get\n");
+			rc = -1;
+			goto exit;
+		}
+	}
+
+	rc = regulator_enable(mapphone_hdmi_dac_reg);
+	if (rc != 0) {
+		PANELERR("Failed HDMI regulator_enable (%d)\n", rc);
+	} else {
+		PANELDBG("Enabled HDMI DAC regulator\n");
+		/* Settling time */
+		msleep(2);
+	}
+
+exit:
+	return rc;
+}
+
+static void mapphone_panel_disable_hdtv(struct omap_dss_device *dssdev)
+{
+	PANELDBG("mapphone_panel_disable_hdtv\n");
+
+	if (mapphone_hdmi_dac_reg)
+		regulator_disable(mapphone_hdmi_dac_reg);
+}
+
+static int  mapphone_panel_enable_hpd_hdtv(struct omap_dss_device *dssdev)
+{
+	int rc = 0;
+
+	PANELDBG("mapphone_panel_enable_hpd_hdtv\n");
+
+	/* Only enable if not currently enabled */
+	if (mapphone_hdmi_platform_hpd_en == 0) {
+		mapphone_hdmi_platform_hpd_en = 1;
+		rc = mapphone_panel_hdmi_5v_enable();
+	}
+
+	return rc;
+}
+
+static void mapphone_panel_disable_hpd_hdtv(struct omap_dss_device *dssdev)
+{
+	PANELDBG("mapphone_panel_disable_hpd_hdtv\n");
+
+	mapphone_hdmi_platform_hpd_en = 0;
+	mapphone_panel_hdmi_5v_disable();
+}
+
+static int mapphone_panel_hdtv_test(struct omap_dss_device *not_used, int tst)
+{
+	if (tst == 0) {
+		mapphone_hdmi_5v_force_off = 0;
+		if (mapphone_hdmi_platform_hpd_en)
+			mapphone_panel_hdmi_5v_enable();
+	} else if (tst == 1) {
+		mapphone_hdmi_5v_force_off = 1;
+		if (mapphone_hdmi_platform_hpd_en)
+			mapphone_panel_hdmi_5v_disable();
+	}
+	return 0;
+}
 
 static struct platform_device omap_panel_device = {
 	.name = "omap-panel",
@@ -1134,10 +1294,6 @@ static void mapphone_panel_get_fb_info(void)
 			mapphone_fb_data.yres_virtual = *(u16 *)panel_prop;
 
 		of_node_put(panel_node);
-	}
-	else {
-	mapphone_fb_data.xres_virtual = 480;
-	mapphone_fb_data.yres_virtual = 850;
 	}
 
 #ifdef DISABLED_FOR_BRINGUP
@@ -1169,19 +1325,8 @@ void __init mapphone_panel_init(void)
 	if (!dss_pwrdm)
 		pr_info("%s: Not found dss_pwrdm\n", __func__);
 
-	mapphone_lcd_device.panel.timings.x_res	=480;
-	mapphone_lcd_device.panel.timings.y_res	=850;
-	mapphone_lcd_device.panel.timings.hfp	=0;
-	mapphone_lcd_device.panel.timings.hsw	=2;
-	mapphone_lcd_device.panel.timings.hbp	=2;
-	mapphone_lcd_device.panel.timings.vfp	=0;
-	mapphone_lcd_device.panel.timings.vsw	=1;
-	mapphone_lcd_device.panel.timings.vbp	=0;
-	mapphone_lcd_device.ctrl.pixel_size	=24;
-	mapphone_dt_get_dsi_panel_info();
-
-	PANELINFO(": using non-dt configuration\n");
-	panel_print_dt();
+	if (mapphone_dt_panel_init())
+		PANELINFO(": using non-dt configuration\n");
 
 	mapphone_panel_get_fb_info();
 	omapfb_set_platform_data(&mapphone_fb_data);
@@ -1260,6 +1405,23 @@ void __init mapphone_panel_init(void)
 		}
 		gpio_direction_output(mapphone_displ_lvds_wp_e, 1);
 	}
+
+#ifndef CONFIG_MACH_OMAP_MAPPHONE_DEFY
+	if (mapphone_feature_hdmi) {
+		/* Set the bits to disable "internal pullups" for the DDC
+		 * clk and data lines.  This is required for ES2.3 parts
+		 * and beyond.  If these are not set EDID reads fails.
+		 */
+		if (cpu_is_omap44xx()) {
+			omap_writel(HDMI_CONTROL_I2C_1_DDC_PU_DIS,
+						HDMI_CONTROL_I2C_1_REG);
+		}
+		platform_device_register(&omap_dssmgr_device);
+	} else {
+		/* Remove HDTV from the DSS device list */
+		mapphone_dss_data.num_devices--;
+	}
+#endif
 
 	platform_device_register(&omap_panel_device);
 	omap_display_init(&mapphone_dss_data);

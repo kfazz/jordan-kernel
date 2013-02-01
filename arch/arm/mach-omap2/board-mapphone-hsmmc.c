@@ -233,6 +233,7 @@ static void wl12xx_init_card(struct mmc_card *card)
 	card->cccr.low_speed = 0;
 	card->cccr.high_power = 0;
 	card->cccr.high_speed = 0;
+	card->cccr.multi_block = 1;
 	card->cis.vendor = 0x104c;
 	card->cis.device = 0x9066;
 	card->cis.blksize = 512;
@@ -254,8 +255,17 @@ static struct omap2_hsmmc_info mmc_controllers[] = {
 		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 |
 					MMC_VDD_165_195,
 	},
+	/* [2]->wifi controller: set the controller id according to devtree */
+	{	.mmc		= 2,
+		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD,
+		.gpio_cd	= -EINVAL,
+		.gpio_wp	= -EINVAL,
+		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 |
+					MMC_VDD_165_195,
+		.init_card	= wl12xx_init_card,
+	},
 	{
-		.mmc            = 2,
+		.mmc            = 0,
 		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA,
 		.gpio_cd        = -EINVAL,
 		.gpio_wp        = -EINVAL,
@@ -265,15 +275,6 @@ static struct omap2_hsmmc_info mmc_controllers[] = {
 #ifdef CONFIG_PM_RUNTIME
 		.power_saving   = true, 
 #endif
-	},
-	/* [2]->wifi controller: set the controller id according to devtree */
-	{	.mmc		= 0,
-		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD,
-		.gpio_cd	= -EINVAL,
-		.gpio_wp	= -EINVAL,
-		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 |
-					MMC_VDD_165_195,
-		.init_card	= wl12xx_init_card,
 	},
 	{}	/* Terminator */
 };

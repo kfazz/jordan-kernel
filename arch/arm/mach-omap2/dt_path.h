@@ -28,6 +28,7 @@
 #define DT_PATH_CHOSEN		"/Chosen@0"
 #define DT_PROP_CHOSEN_BP	"bp_model"
 #define DT_PROP_CHOSEN_BP_LEN	16
+#define DT_PROP_CHOSEN_BP_COUNT "bp_count"
 #define DT_PROP_CHOSEN_OMAP3630REV       "omap3630_rev"
 #define DT_PROP_CHOSEN_USB_PROD_NAME "usb_id_prod_name"
 #define DT_PROP_CHOSEN_USB_PIDS "usb_pids"

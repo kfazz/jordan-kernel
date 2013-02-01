@@ -273,6 +273,7 @@ obj-$(CONFIG_MACH_OMAP_MAPPHONE)	   += board-mapphone.o \
 					   board-mapphone-hsmmc.o \
 					   board-mapphone-gpio.o \
 					   board-mapphone-panel.o \
+					   board-mapphone-modem.o \
 					   board-mapphone-cpcap-client.o \
 					   board-mapphone-spi.o \
 					   board-mapphone-i2c.o \
