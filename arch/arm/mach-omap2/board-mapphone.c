@@ -486,38 +486,52 @@ static struct mtd_partition nand_partitions[] = {
 
 /*
 Old timings:
-root@android:/ # time dd if=/dev/zero of=/cache/test bs=1048576 count=20       
+root@android:/ # time dd if=/dev/zero of=/cache/test bs=1048576 count=20
 20+0 records in
 20+0 records out
 20971520 bytes transferred in 5.656 secs (3707835 bytes/sec)
-    0m5.66s real     0m0.00s user     0m5.47s system */
+    0m5.66s real     0m0.00s user     0m5.47s system 
+passing no:
+root@android:/ # time dd if=/dev/zero of=/cache/test bs=1048576 count=20
+20+0 records in
+20+0 records out
+20971520 bytes transferred in 5.653 secs (3709803 bytes/sec)
+    0m6.11s real     0m0.00s user     0m5.83s system 
+New timings:
+root@android:/ # time dd if=/dev/zero of=/cache/test bs=1048576 count=20
+20+0 records in
+20+0 records out
+20971520 bytes transferred in 5.728 secs (3661229 bytes/sec)
+    0m5.75s real     0m0.00s user     0m5.47s system
+
+slower, but hopefully more stable
+*/
 
 
-
+/* all of tehse without a declared unit are in nanoseconds */
 static struct gpmc_timings nand_timings = {
 	.sync_clk 	= 0, 	/* Minimum clock period for synchronous mode (in picoseconds) */
 
 	.cs_on 		= 0,	 /* Assertion time */
-	.cs_rd_off	= 10,	 /* Read deassertion time */
-	.cs_wr_off	= 8,	/* Write deassertion time */
+	.cs_rd_off	= 60,	 /* Read deassertion time */
+	.cs_wr_off	= 48,	/* Write deassertion time */
 
-	.adv_on 	= 0,	/* Assertion time */
-	.adv_rd_off	= 0,	/* Read deassertion time */
-	.adv_wr_off	= 8,	/* Write deassertion time */
+	.adv_on 	= 6,	/* Assertion time */
+	.adv_rd_off	= 24,	/* Read deassertion time */
+	.adv_wr_off	= 48,	/* Write deassertion time */
 
-	.we_on		= 2,	/* WE assertion time */
-	.we_off		= 6,	/* WE deassertion time */
+	.we_on		= 24,	/* WE assertion time */
+	.we_off		= 36,	/* WE deassertion time */
 
-	.oe_on		= 2,	/* OE assertion time */
-	.oe_off		= 7,	/* OE deassertion time */
+	.oe_on		= 24,	/* OE assertion time */
+	.oe_off		= 42,	/* OE deassertion time */
 
-	.page_burst_access= 0,
-	.access		= 6,	/* Start-cycle to first data valid delay */
-	.rd_cycle	= 6,	/* Total read cycle time */
-	.wr_cycle	= 6,	/* Total write cycle time */
+	.access		= 36,	/* Start-cycle to first data valid delay */
+	.rd_cycle	= 36,	/* Total read cycle time */
+	.wr_cycle	= 36,	/* Total write cycle time */
 
-	.wr_access	= 5,	/* WRACCESSTIME */
-	.wr_data_mux_bus= 1,	/* WRDATAONADMUXBUS */
+	.wr_access	= 30,	/* WRACCESSTIME */
+	.wr_data_mux_bus= 0,	/* WRDATAONADMUXBUS */
 };
 
 static struct omap_nand_platform_data board_nand_data = {
