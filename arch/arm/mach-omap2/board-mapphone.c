@@ -148,7 +148,7 @@ static void __init mapphone_musb_init(void)
 	int use_utmi = 1;
 	u16 power = 100;
 	node = of_find_node_by_path(DT_HIGH_LEVEL_FEATURE);
-#define DEBUG
+
 	if (node) {
 		prop = of_get_property(node, "feature_musb_utmi", &size);
 		if (prop && size) {
@@ -484,27 +484,40 @@ static struct mtd_partition nand_partitions[] = {
 	},
 };
 
+/*
+Old timings:
+root@android:/ # time dd if=/dev/zero of=/cache/test bs=1048576 count=20       
+20+0 records in
+20+0 records out
+20971520 bytes transferred in 5.656 secs (3707835 bytes/sec)
+    0m5.66s real     0m0.00s user     0m5.47s system */
+
+
+
 static struct gpmc_timings nand_timings = {
+	.sync_clk 	= 0, 	/* Minimum clock period for synchronous mode (in picoseconds) */
 
-	.sync_clk = 0,
+	.cs_on 		= 0,	 /* Assertion time */
+	.cs_rd_off	= 10,	 /* Read deassertion time */
+	.cs_wr_off	= 8,	/* Write deassertion time */
 
-	.cs_on = 0,
-	.cs_rd_off = 36,
-	.cs_wr_off = 36,
+	.adv_on 	= 0,	/* Assertion time */
+	.adv_rd_off	= 0,	/* Read deassertion time */
+	.adv_wr_off	= 8,	/* Write deassertion time */
 
-	.adv_on = 6,
-	.adv_rd_off = 24,
-	.adv_wr_off = 36,
+	.we_on		= 2,	/* WE assertion time */
+	.we_off		= 6,	/* WE deassertion time */
 
-	.we_off = 30,
-	.oe_off = 48,
+	.oe_on		= 2,	/* OE assertion time */
+	.oe_off		= 7,	/* OE deassertion time */
 
-	.access = 54,
-	.rd_cycle = 72,
-	.wr_cycle = 72,
+	.page_burst_access= 0,
+	.access		= 6,	/* Start-cycle to first data valid delay */
+	.rd_cycle	= 6,	/* Total read cycle time */
+	.wr_cycle	= 6,	/* Total write cycle time */
 
-	.wr_access = 30,
-	.wr_data_mux_bus = 0,
+	.wr_access	= 5,	/* WRACCESSTIME */
+	.wr_data_mux_bus= 1,	/* WRDATAONADMUXBUS */
 };
 
 static struct omap_nand_platform_data board_nand_data = {
@@ -512,8 +525,8 @@ static struct omap_nand_platform_data board_nand_data = {
 	.gpmc_t		= &nand_timings, /* review these*/
 	.dma_channel	= -1,		/* disable DMA in OMAP NAND driver */
 	.dev_ready	=  1,
-	.xfer_type	= 0, // need polled mode for apanic //NAND_OMAP_PREFETCH_IRQ, //0 also works but not from 2ndboot. Why?
-	.devsize	= NAND_BUSWIDTH_16,	/* '0' for 8-bit, '1' for 16-bit device */
+	.xfer_type	= 0, // may need polled mode for apanic but NAND_OMAP_PREFETCH_IRQ may be better
+	.devsize	= NAND_BUSWIDTH_16,
 	.cs		= 0,
 	.parts		= nand_partitions,
 	.nr_parts	= ARRAY_SIZE(nand_partitions),
