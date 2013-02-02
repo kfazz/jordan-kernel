@@ -173,10 +173,10 @@ static void __init mapphone_musb_init(void)
 	}
 
 //	if (use_utmi)
-		musb_board_data.interface_type = MUSB_INTERFACE_UTMI;
+//		musb_board_data.interface_type = MUSB_INTERFACE_UTMI;
 
 //	if (power > 100 && power <= 500 )
-		musb_board_data.power = power;
+//		musb_board_data.power = power;
 
 	usb_musb_init(&musb_board_data);
 }
@@ -591,8 +591,11 @@ static void __init omap_mapphone_init(void)
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
+
+	usb_musb_init(NULL);
+
 	mapphone_usbhost_init();
-	mapphone_musb_init();
+	//mapphone_musb_init();
 
 
 
