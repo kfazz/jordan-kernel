@@ -172,11 +172,11 @@ static void __init mapphone_musb_init(void)
 		of_node_put(node);
 	}
 
-//	if (use_utmi)
-//		musb_board_data.interface_type = MUSB_INTERFACE_UTMI;
+	if (use_utmi)
+		musb_board_data.interface_type = MUSB_INTERFACE_UTMI;
 
-//	if (power > 100 && power <= 500 )
-//		musb_board_data.power = power;
+	if (power > 100 && power <= 500 )
+		musb_board_data.power = power;
 
 	usb_musb_init(&musb_board_data);
 }
@@ -452,9 +452,9 @@ static void __init omap_mapphone_init_early(void)
 #include <linux/mtd/partitions.h>
 #include <plat/nand.h>
 #include <plat/gpmc.h>
-//#define NAND_BLOCK_SIZE (64 * 2048)
 
-static struct mtd_partition nand_partitions[] = {
+/*these get overwritten by cmdline mtdparts*/
+static struct mtd_partition nand_dummy_partitions[] = {
 	{
 		.name           = "xloader",
 		.offset         = 0,			/* Offset = 0x00000 */
@@ -508,12 +508,12 @@ slower, but hopefully more stable
 */
 
 
-/* all of tehse without a declared unit are in nanoseconds */
+/* all of these without a declared unit are in nanoseconds */
 static struct gpmc_timings nand_timings = {
 	.sync_clk 	= 0, 	/* Minimum clock period for synchronous mode (in picoseconds) */
 
 	.cs_on 		= 0,	 /* Assertion time */
-	.cs_rd_off	= 60,	 /* Read deassertion time */
+	.cs_rd_off	= 36,	 /* Read deassertion time */
 	.cs_wr_off	= 48,	/* Write deassertion time */
 
 	.adv_on 	= 6,	/* Assertion time */
@@ -526,9 +526,9 @@ static struct gpmc_timings nand_timings = {
 	.oe_on		= 24,	/* OE assertion time */
 	.oe_off		= 42,	/* OE deassertion time */
 
-	.access		= 36,	/* Start-cycle to first data valid delay */
-	.rd_cycle	= 36,	/* Total read cycle time */
-	.wr_cycle	= 36,	/* Total write cycle time */
+	.access		= 54,	/* Start-cycle to first data valid delay */
+	.rd_cycle	= 72,	/* Total read cycle time */
+	.wr_cycle	= 72,	/* Total write cycle time */
 
 	.wr_access	= 30,	/* WRACCESSTIME */
 	.wr_data_mux_bus= 0,	/* WRDATAONADMUXBUS */
@@ -542,15 +542,16 @@ static struct omap_nand_platform_data board_nand_data = {
 	.xfer_type	= 0, // may need polled mode for apanic but NAND_OMAP_PREFETCH_IRQ may be better
 	.devsize	= NAND_BUSWIDTH_16,
 	.cs		= 0,
-	.parts		= nand_partitions,
-	.nr_parts	= ARRAY_SIZE(nand_partitions),
+	.parts		= nand_dummy_partitions,
+	.nr_parts	= ARRAY_SIZE(nand_dummy_partitions),
 	.ecc_opt	= OMAP_ECC_HAMMING_CODE_HW,
 	.gpmc_irq	= INT_34XX_GPMC_IRQ,
 };
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
-	{ .reg_offset = OMAP_MUX_TERMINATOR },
+	OMAP3_MUX(SYS_NIRQ, OMAP_MUX_MODE4 | OMAP_WAKEUP_EN | OMAP_PIN_INPUT), //GPIO0 as wakeup source
+		 { .reg_offset = OMAP_MUX_TERMINATOR },
 };
 #else
 #define board_mux	NULL
@@ -587,17 +588,75 @@ static inline void sholes_ramconsole_init(void) {}
 static inline void omap2_ramconsole_reserve_sdram(void) {}
 #endif
 
+#define OLD_MODEM_CONTROL
+#ifdef OLD_MODEM_CONTROL
+#include <linux/omap_mdm_ctrl.h>
+#define SHOLES_BP_READY_AP_GPIO		141
+#define SHOLES_BP_READY2_AP_GPIO	59
+#define SHOLES_BP_RESOUT_GPIO		139
+#define SHOLES_BP_PWRON_GPIO		137
+#define SHOLES_AP_TO_BP_PSHOLD_GPIO	138
+#define SHOLES_AP_TO_BP_FLASH_EN_GPIO	157
+
+#define SHOLES_BPWAKE_STROBE_GPIO	157
+#define SHOLES_APWAKE_TRIGGER_GPIO      141
+#define SHOLES_IPC_USB_SUSP_GPIO	142
+
+static struct omap_mdm_ctrl_platform_data omap_mdm_ctrl_platform_data = {
+	.bp_ready_ap_gpio = SHOLES_BP_READY_AP_GPIO,
+	.bp_ready2_ap_gpio = SHOLES_BP_READY2_AP_GPIO,
+	.bp_resout_gpio = SHOLES_BP_RESOUT_GPIO,
+	.bp_pwron_gpio = SHOLES_BP_PWRON_GPIO,
+	.ap_to_bp_pshold_gpio = SHOLES_AP_TO_BP_PSHOLD_GPIO,
+	.ap_to_bp_flash_en_gpio = SHOLES_AP_TO_BP_FLASH_EN_GPIO,
+};
+
+static struct platform_device omap_mdm_ctrl_platform_device = {
+	.name = OMAP_MDM_CTRL_MODULE_NAME,
+	.id = -1,
+	.dev = {
+		.platform_data = &omap_mdm_ctrl_platform_data,
+	},
+};
+
+static int __init sholes_omap_mdm_ctrl_init(void)
+{
+	gpio_request(SHOLES_BP_READY2_AP_GPIO, "BP Flash Ready");
+	gpio_direction_input(SHOLES_BP_READY2_AP_GPIO);
+
+	//omap_cfg_reg(T4_34XX_GPIO59_DOWN);
+
+	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+
+	gpio_request(SHOLES_BP_RESOUT_GPIO, "BP Reset Output");
+	gpio_direction_input(SHOLES_BP_RESOUT_GPIO);
+	//omap_cfg_reg(AE3_34XX_GPIO139_DOWN);
+	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+
+	gpio_request(SHOLES_BP_PWRON_GPIO, "BP Power On");
+	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 0);
+	//omap_cfg_reg(AH3_34XX_GPIO137_OUT);
+	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
+
+	gpio_request(SHOLES_AP_TO_BP_PSHOLD_GPIO, "AP to BP PS Hold");
+	gpio_direction_output(SHOLES_AP_TO_BP_PSHOLD_GPIO, 0);
+	//omap_cfg_reg(AF3_34XX_GPIO138_OUT);
+	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
+
+	return platform_device_register(&omap_mdm_ctrl_platform_device);
+}
+#endif
 
 static void __init omap_mapphone_init(void)
 {
 
-	//omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //Necessary?
+	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //seems necessary to mux gpio0 with wakeup_en or suspend never returns
 
 	/*
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	//regulator_has_full_constraints();
+	regulator_has_full_constraints();
 
 	omap_serial_init();
 	mapphone_bp_model_init();
@@ -613,39 +672,28 @@ static void __init omap_mapphone_init(void)
 	/* emu-uart function will override devtree iomux setting */
 	activate_emu_uart();
 #endif
-	mapphone_mdm_ctrl_init();
+	//mapphone_mdm_ctrl_init();
+	sholes_omap_mdm_ctrl_init();
 	mapphone_cpcap_client_init();
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
-
-	usb_musb_init(NULL);
-
+	//usb_musb_init(NULL);
+	mapphone_musb_init();
 	mapphone_usbhost_init();
-	//mapphone_musb_init();
-
-
-
 	mapphone_power_off_init();
 	mapphone_hsmmc_init();
 	gpmc_nand_init(&board_nand_data);
-	mapphone_wifi_init(); //Disabled until i check gpios, irqs, and mmmc slot
-
-
-	
-
+	mapphone_wifi_init();
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 	mapphone_gadget_init();
-
-
-	//mapphone_ramconsole_init();
 }
 
 static void __init mapphone_reserve(void)
 {
 	//omap2_ramconsole_reserve_sdram();
-	omap_ram_console_init(PLAT_PHYS_OFFSET + 0x8E00000,0x200000); //  0x0x9000000  0x8E00000 0x200000
+	omap_ram_console_init(PLAT_PHYS_OFFSET + 0x8E00000,0x200000); //Last 2Mb of ram 
 
 #ifdef CONFIG_ION_OMAP
 	omap_ion_init();

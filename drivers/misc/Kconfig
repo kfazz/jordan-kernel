@@ -477,6 +477,14 @@ config VMWARE_BALLOON
 	  To compile this driver as a module, choose M here: the
 	  module will be called vmw_balloon.
 
+config SENSORS_LIS3DH
+	tristate "LIS3DH Accelerometer"
+	default n
+	depends on I2C
+	help
+	 Say yes here if you wish to include the ST Micro
+	 LIS3DH accelerometer driver.
+
 config ARM_CHARLCD
 	bool "ARM Ltd. Character LCD Driver"
 	depends on PLAT_VERSATILE
@@ -591,6 +599,8 @@ source "drivers/misc/iwmc3200top/Kconfig"
 source "drivers/misc/ti-st/Kconfig"
 source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
+source "drivers/misc/radio_ctrl/Kconfig"
+source "drivers/misc/ts27010mux/Kconfig"
 source "drivers/misc/gc-core/Kconfig"
 
 endif # MISC_DEVICES

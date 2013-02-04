@@ -856,12 +856,21 @@ static int mapphone_ste_m570_mdm_ctrl_init(void)
 
 static inline void mapphone_bpwake_init(void)
 {
+#ifdef HACK
+mapphone_bpwake_gpio = 141;
+	if (mapphone_bpwake_gpio >= 0) {
+		mdm6600_ctrl_platform_data.mapphone_bpwake_device =
+			&mapphone_bpwake_device;
+		platform_device_register(&mapphone_bpwake_device);
+	}
+#else
 	mapphone_bpwake_gpio = get_gpio_by_name("ipc_apwake_trigger");
 	if (mapphone_bpwake_gpio >= 0) {
 		mdm6600_ctrl_platform_data.mapphone_bpwake_device =
 			&mapphone_bpwake_device;
 		platform_device_register(&mapphone_bpwake_device);
 	}
+#endif
 }
 
 int __init mapphone_mdm_ctrl_init(void)

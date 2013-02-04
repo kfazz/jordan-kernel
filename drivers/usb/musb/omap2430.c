@@ -334,8 +334,8 @@ void cpcap_musb_notifier_call(unsigned long event)
 			 */
 printk("a");
 			otg_set_clk(musb->xceiv, 1);
-			__raw_writel(SESSEND | IDDIG, ctrl_base +
-							USBOTGHS_CONTROL);
+		//	__raw_writel(SESSEND | IDDIG, ctrl_base +
+		//					USBOTGHS_CONTROL);
 printk("b");
 			if (musb->xceiv->set_vbus) {
 		printk("c");
@@ -370,13 +370,13 @@ printk("b");
 
 		if (data->interface_type == MUSB_INTERFACE_UTMI) {
 			printk("j");
-			val = __raw_readl(phymux_base +
-					USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+		//	val = __raw_readl(phymux_base +
+		//			USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
 
 			printk("k");
-			val &= ~DP_WAKEUPENABLE;
-			__raw_writel(val, phymux_base +
-						USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+		//	val &= ~DP_WAKEUPENABLE;
+		//	__raw_writel(val, phymux_base +
+		//			USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
 				printk("l");
 		}
 		musb->xceiv->last_event = USB_EVENT_NONE;

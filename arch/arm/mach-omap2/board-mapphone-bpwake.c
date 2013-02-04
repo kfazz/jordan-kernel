@@ -18,7 +18,7 @@
 
 #include <mach/hardware.h>
 #include <asm/prom.h>
-#include "board-mapphone.h"
+#include <mach/board-mapphone.h>
 
 #ifdef CONFIG_PM
 extern void omap_uart_block_sleep(int num);
@@ -31,7 +31,7 @@ static struct wake_lock baseband_wakeup_wakelock;
 static irqreturn_t mapphone_bpwake_irqhandler(int irq, void *unused)
 {
 #ifdef CONFIG_PM
-	omap_uart_block_sleep(MAPPHONE_AP_UART);
+	//omap_uart_block_sleep(MAPPHONE_AP_UART);
 #endif
 	/*
 	 * uart_block_sleep keeps uart clock active for 500 ms,
@@ -44,7 +44,7 @@ static irqreturn_t mapphone_bpwake_irqhandler(int irq, void *unused)
 static int mapphone_bpwake_probe(struct platform_device *pdev)
 {
 	int rc;
-
+	printk("%s\n",__FUNCTION__);
 	int apwake_trigger_gpio = *(int *)(pdev->dev.platform_data);
 
 	gpio_request(apwake_trigger_gpio, "BP -> AP IPC trigger");
@@ -68,6 +68,7 @@ static int mapphone_bpwake_probe(struct platform_device *pdev)
 
 static int mapphone_bpwake_remove(struct platform_device *pdev)
 {
+		printk("%s\n",__FUNCTION__);
 	int apwake_trigger_gpio = *(int *)(pdev->dev.platform_data);
 
 	wake_lock_destroy(&baseband_wakeup_wakelock);
@@ -80,11 +81,13 @@ static int mapphone_bpwake_remove(struct platform_device *pdev)
 static int mapphone_bpwake_suspend(struct platform_device *pdev,
 					pm_message_t state)
 {
+		printk("%s\n",__FUNCTION__);
 	return 0;
 }
 
 static int mapphone_bpwake_resume(struct platform_device *pdev)
 {
+		printk("%s\n",__FUNCTION__);
 	return 0;
 }
 
@@ -101,6 +104,7 @@ static struct platform_driver mapphone_bpwake_driver = {
 
 static int __init mapphone_bpwake_init(void)
 {
+	printk("%s\n",__FUNCTION__);
 	return platform_driver_register(&mapphone_bpwake_driver);
 }
 

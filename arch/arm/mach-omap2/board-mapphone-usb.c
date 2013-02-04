@@ -411,8 +411,8 @@ static int mapphone_usb_fsport_startup(void)
 		return r;
 	}
 	gpio_direction_output(MAPPHONE_IPC_USB_SUSP_GPIO, 0);
-	printk(KERN_INFO "%s - Configured GPIO 95 for USB Suspend \n",
-			__func__);
+	printk(KERN_INFO "%s - Configured GPIO %d for USB Suspend \n",
+			__func__, MAPPHONE_IPC_USB_SUSP_GPIO);
 	return 0;
 }
 

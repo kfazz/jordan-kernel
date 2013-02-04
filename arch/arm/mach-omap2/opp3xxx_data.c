@@ -34,7 +34,7 @@ struct omap_opp_def omap36xx_opp_def_list_shared[15];  /*shared*/
 
 #define OMAP3430_VDD_MPU_OPP1_UV		975000
 #define OMAP3430_VDD_MPU_OPP2_UV		1075000
-#define OMAP3430_VDD_MPU_OPP3_UV		1200000
+#define OMAP3430_VDD_MPU_OPP3_UV		1225100 //1200000
 #define OMAP3430_VDD_MPU_OPP4_UV		1270000
 #define OMAP3430_VDD_MPU_OPP5_UV		1350000
 
@@ -49,9 +49,9 @@ struct omap_volt_data omap34xx_vddmpu_volt_data[] = {
 
 /* VDD2 */
 
-#define OMAP3430_VDD_CORE_OPP1_UV		975000
-#define OMAP3430_VDD_CORE_OPP2_UV		1050000
-#define OMAP3430_VDD_CORE_OPP3_UV		1150000
+#define OMAP3430_VDD_CORE_OPP1_UV		998300 //975000
+#define OMAP3430_VDD_CORE_OPP2_UV		1086500 //1050000
+#define OMAP3430_VDD_CORE_OPP3_UV		1174700 //1150000
 
 struct omap_volt_data omap34xx_vddcore_volt_data[] = {
 	VOLT_DATA_DEFINE(OMAP3430_VDD_CORE_OPP1_UV, 0, OMAP343X_CONTROL_FUSE_OPP1_VDD2, 0xf4, 0x0c, OMAP_ABB_NONE),
@@ -109,18 +109,18 @@ struct omap_volt_data omap36xx_vddcore_volt_data[] = {
 /* OPP data */
 
 static struct omap_opp_def __initdata omap34xx_opp_def_list[] = {
-	/* MPU OPP1 */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 125000000, OMAP3430_VDD_MPU_OPP1_UV),
+	/* MPU OPP1 */										//pmic_cpcap.c:	2.6.32:
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 125000000, OMAP3430_VDD_MPU_OPP1_UV), 	 //31		//32
 	/* MPU OPP2 */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 250000000, OMAP3430_VDD_MPU_OPP2_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 250000000, OMAP3430_VDD_MPU_OPP2_UV), 	 //39		//39
 	/* MPU OPP3 */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 500000000, OMAP3430_VDD_MPU_OPP3_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 500000000, OMAP3430_VDD_MPU_OPP3_UV),	 //49		//50
 	/* MPU OPP4 */
-	//OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", false, 550000000, OMAP3430_VDD_MPU_OPP4_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 550000000, OMAP3430_VDD_MPU_OPP4_UV),	 //54		//56
 	/* MPU OPP5 */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 600000000, OMAP3430_VDD_MPU_OPP5_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 600000000, OMAP3430_VDD_MPU_OPP5_UV),	 //60		//62
 	/* 800Mhz Overclock */
-	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 800000000, OMAP3430_VDD_MPU_OPP5_UV),
+	OPP_INITIALIZER("mpu", "dpll1_ck", "mpu_iva", true, 800000000, OMAP3430_VDD_MPU_OPP5_UV),	 //60		//62
 
 	/*
 	 * L3 OPP1 - 41.5 MHz is disabled because: The voltage for that OPP is
@@ -130,11 +130,18 @@ static struct omap_opp_def __initdata omap34xx_opp_def_list[] = {
 	 * impact that frequency will do to the MPU and the whole system in
 	 * general.
 	 */
-	//OPP_INITIALIZER("l3_main", "dpll3_ck", "core", false, 40000000, OMAP3430_VDD_CORE_OPP1_UV),
+
+
+//TODO: try changing clocks to "l3_ick"
+	OPP_INITIALIZER("l3_main", "l3_ick", "core", false, 40125000, OMAP3430_VDD_CORE_OPP1_UV),			//32
 	/* L3 OPP2 */
-	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", true, 80000000, OMAP3430_VDD_CORE_OPP2_UV),
+	OPP_INITIALIZER("l3_main", "l3_ick", "core", true, 80250000, OMAP3430_VDD_CORE_OPP2_UV),			//39
 	/* L3 OPP3 */
-	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", true, 160000000, OMAP3430_VDD_CORE_OPP3_UV),
+	OPP_INITIALIZER("l3_main", "l3_ick", "core", true, 160500000, OMAP3430_VDD_CORE_OPP3_UV), //45		//46
+	/*overclock*/
+	OPP_INITIALIZER("l3_main", "l3_ick", "core", false, 200625000, OMAP3430_VDD_CORE_OPP3_UV),
+
+	OPP_INITIALIZER("l3_main", "l3_ick", "core", false, 220000000, OMAP3430_VDD_CORE_OPP3_UV),
 
 	/* DSP OPP1 */
 	OPP_INITIALIZER("iva", "dpll2_ck", "mpu_iva", true, 90000000, OMAP3430_VDD_MPU_OPP1_UV),
