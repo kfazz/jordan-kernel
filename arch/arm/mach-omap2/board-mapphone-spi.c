@@ -674,7 +674,9 @@ void __init mapphone_spi_init(void)
 	}
 
 	irq = gpio_to_irq(CPCAP_GPIO);
-	//set_irq_type(irq, IRQ_TYPE_EDGE_RISING);
+	
+	enable_irq_wake(CPCAP_GPIO); //let cpcap key events wake us up from suspend
+
 	//omap_cfg_reg(AF26_34XX_GPIO0);
 
 	mapphone_spi_board_info[0].irq = irq;
