@@ -550,7 +550,6 @@ static struct omap_nand_platform_data board_nand_data = {
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
-	OMAP3_MUX(SYS_NIRQ, OMAP_MUX_MODE4 | OMAP_WAKEUP_EN | OMAP_PIN_INPUT), //GPIO0 as wakeup source
 		 { .reg_offset = OMAP_MUX_TERMINATOR },
 };
 #else
@@ -657,6 +656,7 @@ static void __init omap_mapphone_init(void)
 	* should be set in the board file. Before regulators are registered.
 	*/
 	regulator_has_full_constraints();
+	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE4 | OMAP_PIN_OFF_WAKEUPENABLE | OMAP_PIN_INPUT_PULLDOWN );
 
 	omap_serial_init();
 	mapphone_bp_model_init();
@@ -672,8 +672,17 @@ static void __init omap_mapphone_init(void)
 	/* emu-uart function will override devtree iomux setting */
 	activate_emu_uart();
 #endif
-	//mapphone_mdm_ctrl_init();
-	sholes_omap_mdm_ctrl_init();
+
+	//sholes_omap_mdm_ctrl_init();
+
+
+
+	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
+	mapphone_mdm_ctrl_init();
+
 	mapphone_cpcap_client_init();
 	mapphone_panel_init();
 	mapphone_als_init();
@@ -688,6 +697,10 @@ static void __init omap_mapphone_init(void)
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 	mapphone_gadget_init();
+
+	/* Ensure SDRC pins are mux'd for self-refresh */
+	omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
+	omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
 }
 
 static void __init mapphone_reserve(void)

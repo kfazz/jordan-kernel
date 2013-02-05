@@ -641,9 +641,7 @@ static int _disable_clocks(struct omap_hwmod *oh)
 	int i;
 
 	pr_debug("omap_hwmod: %s: disabling clocks\n", oh->name);
-	if (oh->name == "uart3") {
-        return 0;
-	}
+
 	if (oh->_clk)
 		clk_disable(oh->_clk);
 
@@ -1240,9 +1238,6 @@ static int _reset(struct omap_hwmod *oh)
 	int ret;
 
 	pr_debug("omap_hwmod: %s: resetting\n", oh->name);
-	if (oh->name == "uart3") {
-        return 0;
-	}
 
 	ret = (oh->class->reset) ? oh->class->reset(oh) : _ocp_softreset(oh);
 
@@ -1332,9 +1327,7 @@ static int _idle(struct omap_hwmod *oh)
 	}
 
 	pr_debug("omap_hwmod: %s: idling\n", oh->name);
-	if (oh->name == "uart3") {
-        return 0;
-	}
+
 	if (oh->class->sysc)
 		_idle_sysc(oh);
 	_del_initiator_dep(oh, mpu_oh);

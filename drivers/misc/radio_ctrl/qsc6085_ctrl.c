@@ -158,16 +158,16 @@ static ssize_t qsc6085_do_powerup(struct qsc6085_info *info)
 
 	if (!err) {
 		if (info->boot_flash) {
-			pr_debug("%s: started wrigley in flash mode\n",
+			pr_debug("%s: started qsc6085 in flash mode\n",
 				__func__);
 			info->status = QSC6085_STATUS_FLASH;
 		} else {
-			pr_debug("%s: started wrigley in normal mode\n",
+			pr_debug("%s: started qsc6085 in normal mode\n",
 					__func__);
 			info->status = QSC6085_STATUS_NORMAL;
 		}
 	} else {
-		pr_err("%s: failed to start wrigley\n", __func__);
+		pr_err("%s: failed to start qsc6085\n", __func__);
 		info->status = QSC6085_STATUS_UNDEFINED;
 	}
 
