@@ -53,13 +53,13 @@
 #include "pm.h"
 #include "hsmmc.h"
 #include "omap_ram_console.h"
+#include "control.h"
 
-
-#define WILINK_UART_DEV_NAME "/dev/ttyO3"
+#define WILINK_UART_DEV_NAME "/dev/ttyO3" //Need Check it.
 #define MAPPHONE_POWER_OFF_GPIO 176
-
-#define MAPPHONE_WIFI_PMENA_GPIO 179 //nshutdown
-#define MAPPHONE_WIFI_IRQ_GPIO 178 // hostwake
+#define MAPPHONE_WIFI_PMENA_GPIO 186
+#define MAPPHONE_WIFI_IRQ_GPIO 65
+#define MAPPHONE_BT_RESET_GPIO 21 //get_gpio_by_name("bt_reset_b")
 
 char *bp_model = "CDMA";
 
@@ -145,7 +145,7 @@ static void __init mapphone_musb_init(void)
 	struct device_node *node;
 	const void *prop;
 	int size;
-	int use_utmi = 1;
+	int use_utmi = 0;
 	u16 power = 100;
 	node = of_find_node_by_path(DT_HIGH_LEVEL_FEATURE);
 
@@ -184,54 +184,28 @@ static void __init mapphone_musb_init(void)
 static bool uart_req;
 static struct wake_lock st_wk_lock;
 
-static int plat_uart_disable(void)
+static int plat_kim_suspend(struct platform_device *pdev, pm_message_t state)
 {
-	int port_id = 0;
-	int err = 0;
-	if (uart_req) {
-		sscanf(WILINK_UART_DEV_NAME, "/dev/ttyO%d", &port_id);
-		err = omap_serial_ext_uart_disable(port_id);
-		if (!err)
-			uart_req = false;
-	}
-	wake_unlock(&st_wk_lock);
-	return err;
+	return 0;
 }
 
-/* Call the uart enable of serial driver */
-static int plat_uart_enable(void)
+static int plat_kim_resume(struct platform_device *pdev)
 {
-	int port_id = 0;
-	int err = 0;
-	if (!uart_req) {
-		sscanf(WILINK_UART_DEV_NAME, "/dev/ttyO%d", &port_id);
-		err = omap_serial_ext_uart_enable(port_id);
-		if (!err)
-			uart_req = true;
-	}
-	wake_lock(&st_wk_lock);
-	return err;
+	return 0;
 }
 
-
-/* wl128x BT, FM, GPS connectivity chip */
-static struct ti_st_plat_data wilink_pdata = {
-	.nshutdown_gpio = 174, //TODO: Need check this value on defy!
+/* wl127x BT, FM, GPS connectivity chip */
+struct ti_st_plat_data wilink_pdata = {
+	.nshutdown_gpio = MAPPHONE_BT_RESET_GPIO,
 	.dev_name = WILINK_UART_DEV_NAME,
 	.flow_cntrl = 1,
-	.baud_rate = 3686400,
-	.suspend = 0,
-	.resume = 0,
-	.chip_asleep = plat_uart_disable,
-	.chip_awake  = plat_uart_enable,
-	.chip_enable = plat_uart_enable,
-	.chip_disable = plat_uart_disable,
+	.suspend = plat_kim_suspend,
+	.resume = plat_kim_resume,
 };
 
-static struct platform_device wl128x_device = {
-	.name		= "kim",
-	.id		= -1,
-	.dev.platform_data = &wilink_pdata,
+static struct platform_device wl127x_device = {
+	.name           = "kim",
+	.id             = -1,	.dev.platform_data = &wilink_pdata,
 };
 
 static struct platform_device btwilink_device = {
@@ -240,12 +214,12 @@ static struct platform_device btwilink_device = {
 };
 
 static struct platform_device *mapphone_devices[] __initdata = {
-	&wl128x_device,
+	&wl127x_device,
 	&btwilink_device,
 };
 
 static struct wl12xx_platform_data mapphone_wlan_data __initdata = {
-	.irq = -1, /* OMAP_GPIO_IRQ(GPIO_WIFI_IRQ),*/
+	.irq = OMAP_GPIO_IRQ(MAPPHONE_WIFI_IRQ_GPIO),
 	.board_ref_clock = WL12XX_REFCLOCK_26,
 	.board_tcxo_clock = 1,
 };
@@ -253,19 +227,16 @@ static struct wl12xx_platform_data mapphone_wlan_data __initdata = {
 int wifi_set_power(struct device *dev, int slot, int power_on, int vdd)
 {
 	static int power_state;
-	pr_debug("Powering %s wifi", (power_on ? "on" : "off"));
-	if (power_on == power_state)
+	printk("Powering %s wifi\n", (power_on ? "on" : "off"));
+	if (power_on == power_state) {
 		return 0;
+	}
 	power_state = power_on;
 	if (power_on) {
 		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 1);
-		mdelay(15);
+	} else {
 		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 0);
-		mdelay(1);
-		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 1);
-		mdelay(70);
-	} else
-		gpio_set_value(MAPPHONE_WIFI_PMENA_GPIO, 0);
+	}
 	return 0;
 }
 
@@ -276,25 +247,16 @@ static void mapphone_wifi_init(void)
 
 	ret = gpio_request(MAPPHONE_WIFI_PMENA_GPIO, "wifi_pmena");
 	if (ret < 0) {
-		printk(KERN_ERR "%s: can't reserve GPIO: %ld\n", __func__,
+		printk(KERN_ERR "%s: can't reserve GPIO: %d\n", __func__,
 			MAPPHONE_WIFI_PMENA_GPIO);
 		return;
 	}
-
-	ret = gpio_request(MAPPHONE_WIFI_IRQ_GPIO, "wifi_irq");
-	if (ret < 0) {
-		printk(KERN_ERR "%s: can't reserve GPIO: %d\n", __func__,
-			MAPPHONE_WIFI_IRQ_GPIO);
-		return;
-	}
-
-	gpio_direction_input(MAPPHONE_WIFI_IRQ_GPIO);
 	gpio_direction_output(MAPPHONE_WIFI_PMENA_GPIO, 0);
 	mapphone_wlan_data.irq = OMAP_GPIO_IRQ(MAPPHONE_WIFI_IRQ_GPIO);
 
-	if (wl12xx_set_platform_data(&mapphone_wlan_data)) {
+	if (wl12xx_set_platform_data(&mapphone_wlan_data))
+	{
 		pr_err("Error setting wl12xx data\n");
-	return;
 	}
 	printk("Wifi init done\n");
 	return;
@@ -646,6 +608,27 @@ static int __init sholes_omap_mdm_ctrl_init(void)
 }
 #endif
 
+/* for sdio wl1271 */
+static void __init config_mmc2_init(void)
+{
+	u32 val;
+
+	/* MMC2 */
+	omap_mux_init_signal("mmc2_clk",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("mmc2_cmd",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("mmc2_dat0",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("mmc2_dat1",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("mmc2_dat2",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("mmc2_dat3",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+
+	/* Set internal loopback clock */
+	val = omap_ctrl_readl(OMAP343X_CONTROL_DEVCONF1); 
+	omap_ctrl_writel((val | OMAP2_MMCSDIO2ADPCLKISEL),
+				OMAP343X_CONTROL_DEVCONF1);
+}
+
 static void __init omap_mapphone_init(void)
 {
 
@@ -666,7 +649,6 @@ static void __init omap_mapphone_init(void)
 	mapphone_padconf_init();
 	omap_register_ion();
 	platform_add_devices(mapphone_devices, ARRAY_SIZE(mapphone_devices));
-	wake_lock_init(&st_wk_lock, WAKE_LOCK_SUSPEND, "st_wake_lock");
 	mapphone_spi_init();
 #ifdef CONFIG_EMU_UART_DEBUG
 	/* emu-uart function will override devtree iomux setting */
@@ -691,6 +673,7 @@ static void __init omap_mapphone_init(void)
 	mapphone_musb_init();
 	mapphone_usbhost_init();
 	mapphone_power_off_init();
+	config_mmc2_init(); //setup mux and loopback clock before probe
 	mapphone_hsmmc_init();
 	gpmc_nand_init(&board_nand_data);
 	mapphone_wifi_init();

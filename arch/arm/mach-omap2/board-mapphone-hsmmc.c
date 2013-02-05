@@ -207,10 +207,9 @@ static int mapphone_hsmmc_late_init(struct device *dev)
 			dev_dbg(dev, "eMMC Vcc regulator missing\n");
 			emmc_regulator = NULL;
 		}
-		pdata->slots[0].set_power = emmc_set_power;
-		pdata->slots[0].set_sleep = emmc_set_sleep;
-	} else if (pdev->id == 2)
 		pdata->slots[0].set_power = wifi_set_power;
+		printk("set_power = wifi_set_power\n");
+	}
 	return ret;
 }
 
@@ -233,7 +232,6 @@ static void wl12xx_init_card(struct mmc_card *card)
 	card->cccr.low_speed = 0;
 	card->cccr.high_power = 0;
 	card->cccr.high_speed = 0;
-	card->cccr.multi_block = 1;
 	card->cis.vendor = 0x104c;
 	card->cis.device = 0x9066;
 	card->cis.blksize = 512;
@@ -251,30 +249,20 @@ static struct omap2_hsmmc_info mmc_controllers[] = {
 		.gpio_cd	= -EINVAL,
 		.gpio_wp	= -EINVAL,
 		.nonremovable	= 0,	/* MMC_UNSAFE_RESUME defined */
-		.init_delay	= 50,	/* make mmc0 detect after mmc1 */
+		//.init_delay	= 50,	/* make mmc0 detect after mmc1 */
 		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 |
 					MMC_VDD_165_195,
 	},
-	/* [2]->wifi controller: set the controller id according to devtree */
-	{	.mmc		= 2,
+	{
+		.mmc		= 2,
+		.name		= "wl1271",
 		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_POWER_OFF_CARD,
 		.gpio_cd	= -EINVAL,
 		.gpio_wp	= -EINVAL,
-		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 |
-					MMC_VDD_165_195,
-		.init_card	= wl12xx_init_card,
-	},
-	{
-		.mmc            = 0,
-		.caps		= MMC_CAP_4_BIT_DATA | MMC_CAP_8_BIT_DATA,
-		.gpio_cd        = -EINVAL,
-		.gpio_wp        = -EINVAL,
-		.no_off		= 1,
-		.ocr_mask       = MMC_VDD_30_31,
+		//.no_off		= 1,
+		.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195,
 		.nonremovable	= 1,
-#ifdef CONFIG_PM_RUNTIME
-		.power_saving   = true, 
-#endif
+		.init_card	= wl12xx_init_card,
 	},
 	{}	/* Terminator */
 };
@@ -313,34 +301,6 @@ int __init mapphone_hsmmc_init(void)
 			}
 		}
 	}
-
-	/* use devtree to change default emmc Vcc (VSDIO) here */
-
-	/* Set wifi's controller id */
-	mmc_node = of_find_node_by_path(DT_PATH_MMC3);
-	if (mmc_node) {
-		mmc_prop = of_get_property(mmc_node,
-			DT_PROP_MMC_CARD_CONNECT, NULL);
-			if (mmc_prop) {
-				tiwlan_mmc_controller =
-					*(int *)mmc_prop;
-				is_found = 1;
-			}
-	}
-	if (!is_found)
-		tiwlan_mmc_controller = 5;
-	if (tiwlan_mmc_controller > 0 &&
-			tiwlan_mmc_controller <= 5)
-		mmc_controllers[2].mmc = tiwlan_mmc_controller;
-	else
-		tiwlan_mmc_controller = 0;
-
-	/* set sd_det_n */
-	sd_det_n = get_gpio_by_name("sd_det_n");
-	if (sd_det_n >= 0)
-		mmc_controllers[0].gpio_cd = sd_det_n;
-	else
-		mmc_controllers[0].gpio_cd = GPIO_SIGNAL_SD_DET_N;
 
 	omap2_hsmmc_init(mmc_controllers);
 	for (c = mmc_controllers; c->mmc; c++)
