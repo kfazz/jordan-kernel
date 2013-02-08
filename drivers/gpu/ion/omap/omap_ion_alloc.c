@@ -70,7 +70,6 @@ int omap_ion_mem_alloc(struct ion_client *client,
 
 	return ret;
 }
-EXPORT_SYMBOL(omap_ion_mem_alloc);
 
 int omap_ion_get_pages(struct ion_client *client, struct ion_handle *handle,
 		int *n, unsigned long *ion_addr,
@@ -84,7 +83,6 @@ int omap_ion_get_pages(struct ion_client *client, struct ion_handle *handle,
 
 	return 0;
 }
-EXPORT_SYMBOL(omap_ion_get_pages);
 
 #ifdef CONFIG_OMAP2_VRFB
 

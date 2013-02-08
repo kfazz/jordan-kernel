@@ -338,6 +338,10 @@ void OMAPLFBFlip(OMAPLFB_DEVINFO *psDevInfo, OMAPLFB_BUFFER *psBuffer)
 #if !defined(PVR_OMAPLFB_DRM_FB) || defined(DEBUG)
 static OMAPLFB_BOOL OMAPLFBValidateDSSUpdateMode(enum omap_dss_update_mode eMode)
 {
+#ifdef FORCE_AUTO
+	return OMAPLFB_TRUE;
+#endif
+
 	switch (eMode)
 	{
 		case OMAP_DSS_UPDATE_AUTO:
@@ -353,6 +357,9 @@ static OMAPLFB_BOOL OMAPLFBValidateDSSUpdateMode(enum omap_dss_update_mode eMode
 
 static OMAPLFB_UPDATE_MODE OMAPLFBFromDSSUpdateMode(enum omap_dss_update_mode eMode)
 {
+#ifdef FORCE_AUTO
+	return OMAPLFB_UPDATE_MODE_AUTO;
+#endif
 	switch (eMode)
 	{
 		case OMAP_DSS_UPDATE_AUTO:
@@ -473,6 +480,10 @@ void OMAPLFBPrintInfo(OMAPLFB_DEVINFO *psDevInfo)
 
 OMAPLFB_UPDATE_MODE OMAPLFBGetUpdateMode(OMAPLFB_DEVINFO *psDevInfo)
 {
+#ifdef FORCE_AUTO
+	return OMAPLFB_UPDATE_MODE_AUTO;
+#endif
+
 #if defined(PVR_OMAPLFB_DRM_FB)
 	struct drm_connector *psConnector;
 	OMAPLFB_UPDATE_MODE eMode = OMAPLFB_UPDATE_MODE_UNDEFINED;
@@ -539,6 +550,9 @@ OMAPLFB_UPDATE_MODE OMAPLFBGetUpdateMode(OMAPLFB_DEVINFO *psDevInfo)
 
 OMAPLFB_BOOL OMAPLFBSetUpdateMode(OMAPLFB_DEVINFO *psDevInfo, OMAPLFB_UPDATE_MODE eMode)
 {
+#ifdef FORCE_AUTO
+	return OMAPLFB_TRUE;
+#endif
 #if defined(PVR_OMAPLFB_DRM_FB)
 	struct drm_connector *psConnector;
 	enum omap_dss_update_mode eDSSMode;
@@ -649,6 +663,9 @@ OMAPLFB_BOOL OMAPLFBWaitForVSync(OMAPLFB_DEVINFO *psDevInfo)
 
 OMAPLFB_BOOL OMAPLFBManualSync(OMAPLFB_DEVINFO *psDevInfo)
 {
+#ifdef FORCE_AUTO
+	return OMAPLFB_TRUE;
+#endif
 #if defined(PVR_OMAPLFB_DRM_FB)
 	struct drm_connector *psConnector;
 
