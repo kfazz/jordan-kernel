@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * Copyright(c) 2008 Imagination Technologies Ltd. All rights reserved.
+ * Copyright (C) Imagination Technologies Ltd. All rights reserved.
  * 
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -24,33 +24,37 @@
  *
  ******************************************************************************/
 
-#if !defined(__OEMFUNCS_H__)
-#define __OEMFUNCS_H__
+#ifndef _HOTKEY_
+#define _HOTKEY_
 
-#if defined (__cplusplus)
-extern "C" {
-#endif
 
-typedef IMG_UINT32   (*PFN_SRV_BRIDGEDISPATCH)( IMG_UINT32  Ioctl,
-												IMG_BYTE   *pInBuf,
-												IMG_UINT32  InBufLen, 
-											    IMG_BYTE   *pOutBuf,
-												IMG_UINT32  OutBufLen,
-												IMG_UINT32 *pdwBytesTransferred);
-typedef struct PVRSRV_DC_OEM_JTABLE_TAG
+typedef struct _hotkeyinfo
 {
-	PFN_SRV_BRIDGEDISPATCH			pfnOEMBridgeDispatch;
-	IMG_PVOID						pvDummy1;
-	IMG_PVOID						pvDummy2;
-	IMG_PVOID						pvDummy3;
+	IMG_UINT8 ui8ScanCode;
+	IMG_UINT8 ui8Type;
+	IMG_UINT8 ui8Flag;
+	IMG_UINT8 ui8Filler1;
+	IMG_UINT32 ui32ShiftState;
+	IMG_UINT32 ui32HotKeyProc;
+	IMG_VOID *pvStream;
+	IMG_UINT32 hHotKey;			
+} HOTKEYINFO, *PHOTKEYINFO;
 
-} PVRSRV_DC_OEM_JTABLE;
+typedef struct _privatehotkeydata
+{
+	IMG_UINT32		ui32ScanCode;
+	IMG_UINT32		ui32ShiftState;
+	HOTKEYINFO	sHotKeyInfo;
+} PRIVATEHOTKEYDATA, *PPRIVATEHOTKEYDATA;
 
-#define OEM_GET_EXT_FUNCS			(1<<1)
 
-#if defined(__cplusplus)
-}
+IMG_VOID ReadInHotKeys (IMG_VOID);
+IMG_VOID ActivateHotKeys(PDBG_STREAM psStream);
+IMG_VOID DeactivateHotKeys(IMG_VOID);
+
+IMG_VOID RemoveHotKey (IMG_UINT32 hHotKey);
+IMG_VOID DefineHotKey (IMG_UINT32 ui32ScanCode, IMG_UINT32 ui32ShiftState, PHOTKEYINFO psInfo);
+IMG_VOID RegisterKeyPressed (IMG_UINT32 ui32ScanCode, PHOTKEYINFO psInfo);
+
 #endif
-
-#endif	
 

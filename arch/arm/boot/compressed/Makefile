@@ -108,7 +108,6 @@ OBJS	+= $(libfdt_objs) atags_to_fdt.o
 endif
 
 targets	:= vmlinux vmlinux.lds \
->>>>>>> origin/p-android-omap3-3.0
 		 piggy.$(suffix_y) piggy.$(suffix_y).o \
 		 font.o font.c head.o misc.o $(OBJS)
 

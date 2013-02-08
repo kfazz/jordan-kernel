@@ -23,7 +23,6 @@
 #include <plat/usb.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/composite.h>
-#include <linux/usb/mdm6600_usb.h>
 #include <plat/omap-pm.h>
 
 #if defined(CONFIG_USB_MUSB_OTG)
@@ -31,7 +30,6 @@
 #include <linux/usb/musb.h>
 #include <linux/usb/composite.h>
 #endif
-#include <linux/usb/oob_wake.h>
 
 #include <plat/common.h>
 #include "cm-regbits-34xx.h"
@@ -42,21 +40,9 @@
 #define MAPPHONE_IPC_USB_SUSP_GPIO	142 //95
 #define DIE_ID_REG_BASE			(L4_34XX_PHYS + 0xA000)
 #define DIE_ID_REG_OFFSET		0x218
-#define DIE_ID_REG_BASE_44XX		(L4_44XX_PHYS + 0x2000)
-#define DIE_ID_REG_OFFSET_44XX		0x200
-#define EHCI_IRQ                        (77 + OMAP44XX_IRQ_GIC_START)
 
 void cpcap_musb_notifier_call(unsigned long event);
 #if defined(CONFIG_USB_MUSB_OTG)
-enum cpcap_accy {
-	CPCAP_ACCY_USB,
-	CPCAP_ACCY_FACTORY,
-	CPCAP_ACCY_CHARGER,
-	CPCAP_ACCY_NONE,
-
-	/* Used while debouncing the accessory. */
-	CPCAP_ACCY_UNKNOWN,
-};
 
 struct cpcap_accy_platform_data {
 	enum cpcap_accy accy;
@@ -67,9 +53,9 @@ struct cpcap_accy_platform_data {
 static struct device_pid mot_android_pid[MAX_DEVICE_TYPE_NUM] = {
 	{"mtp,usbnet",		0},
 	{"mtp,usbnet,adb",	0},
-	{"ptp",		0},
-	{"ptp,adb",	0},
-	{"rndis",			0},
+	{"ptp",			0},
+	{"ptp,adb",		0},
+	{"rndis",		0},
 	{"rndis,adb",		0},
 	{"cdrom",               0},
 	{"mass_storage",        0},
@@ -80,8 +66,8 @@ static struct device_pid mot_android_pid[MAX_DEVICE_TYPE_NUM] = {
 
 static struct android_usb_platform_data andusb_plat = {
 	.vendor			= "Motorola",
-	.product_name	= "Android",
-	.android_pid	= mot_android_pid,
+	.product_name		= "Android",
+	.android_pid		= mot_android_pid,
 	.nluns			= 1,
 	.cdrom_lun_num          = 0,
 };
@@ -102,16 +88,9 @@ static void set_usb_performance_mode(struct device *dev, bool enabled)
 			omap_device_scale(dev, mpu_dev, 800000000);
 		else
 			omap_device_scale(dev, mpu_dev, 600000000);
-		if (num_possible_cpus() > 1
-				&& cpu_online(num_possible_cpus()-1))
-			irq_set_affinity(EHCI_IRQ,
-					cpumask_of(num_possible_cpus()-1));
 	} else {
 		omap_device_scale(dev, mpu_dev, 300000000);
-		irq_set_affinity(EHCI_IRQ, cpu_online_mask);
 	}
-
-
 }
 
 
@@ -260,7 +239,6 @@ void __init usb_pid_mapping_init(void)
 	for (i = 0; i < size / unit_size; i++) {
 		struct omap_usb_pid_entry *p =
 		(struct omap_usb_pid_entry *) prop;
-
 		memcpy((void *) name, p->name, USB_FUNC_NAME_SIZE);
 		trim_usb_name_string(name);
 		android_usb_set_pid(name, p->usb_pid);
@@ -284,7 +262,7 @@ void mapphone_init_cdrom_lun_num(void)
 	}
 	prop = of_get_property(node, DT_PROP_CHOSEN_USB_CDROM_LUN_NUM, NULL);
 	if (prop) {
-		pr_err("USB Overwrite CDROM Lun Num with %d\n", *(char *)prop);
+		pr_err("USB Overwrite nLuns %d\n", *(char *)prop);
 		andusb_plat.cdrom_lun_num = *(char *)prop;
 	}
 
@@ -338,15 +316,15 @@ void mapphone_get_product_name(void)
 			return;
 		}
 
-		prop = of_get_property(node, DT_PROP_CHOSEN_USB_PROD_NAME,
-				       NULL);
-		if (prop) {
-			andusb_plat.product_name = (char *)prop;
-		} else {
-			pr_err("Read property %s error!\n",
-			DT_PROP_CHOSEN_USB_PROD_NAME);
-		}
-		of_node_put(node);
+	prop = of_get_property(node, DT_PROP_CHOSEN_USB_PROD_NAME, NULL);
+	if (prop) {
+		andusb_plat.product_name = (char *)prop;
+	} else {
+		pr_err("Read property %s error!\n",
+		       DT_PROP_CHOSEN_USB_PROD_NAME);
+	}
+
+	of_node_put(node);
 	}
 
 	return;
@@ -357,19 +335,12 @@ void mapphone_get_serial_number(void)
 	unsigned int val[2];
 	unsigned int reg;
 
-	if (cpu_is_omap44xx())
-		reg = DIE_ID_REG_BASE_44XX + DIE_ID_REG_OFFSET_44XX;
-	else
-		reg = DIE_ID_REG_BASE + DIE_ID_REG_OFFSET;
+	reg = DIE_ID_REG_BASE + DIE_ID_REG_OFFSET;
 
 	//val[0] = omap_readl(reg); //crashes with another data abort
 	
+	//val[1] = omap_readl(reg + 4);
 
-	if (cpu_is_omap44xx())
-		/* OMAP4 has the id_code register at die_id_0 + 4*/
-		val[1] = omap_readl(reg + 8);
-	else
-		//val[1] = omap_readl(reg + 4);
 	val[1] = 0x12345678;
 	val[0] = 0x90abcdef;
 
@@ -380,8 +351,6 @@ void mapphone_get_serial_number(void)
 
 void mapphone_gadget_init(void)
 {
-	//if (!strncmp(boot_mode, "bp-tools", BOOT_MODE_MAX_LEN))
-	//	andusb_plat.bp_tools_mode = 1;
 
 	andusb_plat.performance_mode = set_usb_performance_mode;
 
@@ -411,8 +380,8 @@ static int mapphone_usb_fsport_startup(void)
 		return r;
 	}
 	gpio_direction_output(MAPPHONE_IPC_USB_SUSP_GPIO, 0);
-	printk(KERN_INFO "%s - Configured GPIO %d for USB Suspend \n",
-			__func__, MAPPHONE_IPC_USB_SUSP_GPIO);
+	printk(KERN_INFO "%s - Configured GPIO 95 for USB Suspend \n",
+			__func__);
 	return 0;
 }
 
@@ -472,54 +441,6 @@ failed_clk1:
 	gpio_free(gpio);
 }
 
-static struct resource oob_wake_resources[] = {
-        [0] = {
-                .flags = IORESOURCE_IRQ,
-        },
-};
-
-/* LTE USB Out-of-Band Wakeup Device */
-static struct oob_wake_platform_data oob_wake_pdata = {
-        .vendor = 0x22b8,
-        .product = 0x4267,
-};
-
-static struct platform_device oob_wake_device = {
-        .name   = "oob-wake",
-        .id     = -1,
-        .dev    = {
-                .platform_data = &oob_wake_pdata,
-        },
-        .resource = oob_wake_resources,
-        .num_resources = ARRAY_SIZE(oob_wake_resources),
-};
-
-static struct resource mdm6600_resources[] = {
-	[0] = {
-		.flags = IORESOURCE_IRQ,
-	},
-};
-
-static struct platform_device mdm6600_usb_device = {
-	.name   = "mdm6600_modem",
-	.id     = -1,
-	.resource = mdm6600_resources,
-	.num_resources = ARRAY_SIZE(mdm6600_resources),
-};
-
-static struct mdm6600_usb_platform_data qsc_usb_pdata = {
-	.modem_interface = 4,
-	.remote_wake_gpio = -1
-};
-
-static struct platform_device qsc_usb_device = {
-	.name   = "qsc6085_modem",
-	.id     = -1,
-	.dev    = {
-		.platform_data = &qsc_usb_pdata,
-	},
-};
-
 static struct usbhs_omap_board_data usbhs_bdata  = {
 	.port_mode[0] = OMAP_USBHS_PORT_MODE_UNUSED,
 	.port_mode[1] = OMAP_USBHS_PORT_MODE_UNUSED,
@@ -537,7 +458,7 @@ void __init mapphone_usbhost_init(void)
 {
 	struct device_node *node;
 	const void *prop;
-	int i, size, rwkup_gpio;
+	int i, size;
 	int feature_usbhost = 1;
 	int feature_ipc_ohci_phy = 0;
 	int feature_ipc_ehci_phy = 0;
@@ -611,25 +532,4 @@ void __init mapphone_usbhost_init(void)
 	}
 
 	usbhs_init(&usbhs_bdata);
-
-	rwkup_gpio = get_gpio_by_name("mdm6600_usb_rwkup");
-
-	if (rwkup_gpio >= 0) {
-		gpio_request(rwkup_gpio, "mdm6600_usb_rwkup");
-		gpio_direction_input(rwkup_gpio);
-		mdm6600_resources[0].start = gpio_to_irq(rwkup_gpio);
-		mdm6600_resources[0].end = gpio_to_irq(rwkup_gpio);
-		platform_device_register(&mdm6600_usb_device);
-	} else {
-		platform_device_register(&qsc_usb_device);
-	}
-
-	rwkup_gpio = get_gpio_by_name("lte_wan_hostwake");
-
-	if (rwkup_gpio >= 0) {
-		oob_wake_resources[0].start = gpio_to_irq(rwkup_gpio);
-		oob_wake_resources[0].end = gpio_to_irq(rwkup_gpio);
-		platform_device_register(&oob_wake_device);
-	} else
-		pr_debug("Out of Band Remote Wakeup for CDC  not defined\n");
 }

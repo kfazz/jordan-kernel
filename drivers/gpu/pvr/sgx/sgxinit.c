@@ -363,15 +363,13 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	IMG_BOOL				bPDumpIsSuspended = PDumpIsSuspended();
 #endif 
 
-	printk("Entered SGXInitialize\n");
-
 #if defined(SGX_FEATURE_MP)
 	
 #else
 	SGXInitClocks(psDevInfo, PDUMP_FLAGS_CONTINUOUS);
 #endif 
 	
-	printk("Clocks Inited\n");
+	
 
 	PDUMPCOMMENTWITHFLAGS(PDUMP_FLAGS_CONTINUOUS, "SGX initialisation script part 1\n");
 	eError = SGXRunScript(psDevInfo, psDevInfo->sScripts.asInitCommandsPart1, SGX_MAX_INIT_COMMANDS);
@@ -385,7 +383,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	
 	psDevInfo->ui32NumResets++;
 	SGXReset(psDevInfo, bFirstTime || bHardwareRecovery, PDUMP_FLAGS_CONTINUOUS);
-		printk("Reset 1 \n");
+
 #if defined(EUR_CR_POWER)
 #if defined(SGX531)
 	
@@ -396,7 +394,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 	OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_POWER, 1);
 	PDUMPREG(SGX_PDUMPREG_NAME, EUR_CR_POWER, 1);
 #else
-	printk("Eur_cr_power\n");
+	
 	OSWriteHWReg(psDevInfo->pvRegsBaseKM, EUR_CR_POWER, 0);
 	PDUMPREG(SGX_PDUMPREG_NAME, EUR_CR_POWER, 0);
 #endif
@@ -417,7 +415,7 @@ PVRSRV_ERROR SGXInitialise(PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 #if defined(SUPPORT_MEMORY_TILING)
 	{
-			printk("SUPPORT_MEMORY_TILING\n");
+		
 		DEVICE_MEMORY_HEAP_INFO *psDeviceMemoryHeap = psDevInfo->pvDeviceMemoryHeap;
 		IMG_UINT32 i;
 
@@ -1913,11 +1911,7 @@ IMG_VOID SGXPanic(PVRSRV_SGXDEV_INFO	*psDevInfo)
 {
 	PVR_LOG(("SGX panic"));
 	SGXDumpDebugInfo(psDevInfo, IMG_FALSE);
-#if defined(PVRSRV_RESET_ON_HWTIMEOUT)
 	OSPanic();
-#else
-	PVR_LOG(("OSPanic disabled"));
-#endif
 }
 
 
@@ -2739,6 +2733,8 @@ PVRSRV_ERROR SGXGetMiscInfoKM(PVRSRV_SGXDEV_INFO	*psDevInfo,
 			return PVRSRV_OK;
 		}
 
+#if defined(DEBUG)
+		
 		case SGX_MISC_INFO_PANIC:
 		{
 			PVR_LOG(("User requested SGX panic"));
@@ -2747,6 +2743,7 @@ PVRSRV_ERROR SGXGetMiscInfoKM(PVRSRV_SGXDEV_INFO	*psDevInfo,
 
 			return PVRSRV_OK;
 		}
+#endif
 
 		default:
 		{

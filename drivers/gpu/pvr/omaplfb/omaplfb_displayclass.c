@@ -31,6 +31,8 @@
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/notifier.h>
+	//for  omapfb_mode_to_dss_mode
+#include <linux/omapfb.h>
 
 #include "img_defs.h"
 #include "servicesext.h"
@@ -129,6 +131,9 @@ static inline OMAPLFB_BOOL SwapChainHasChanged(OMAPLFB_DEVINFO *psDevInfo, OMAPL
 
 static inline OMAPLFB_BOOL DontWaitForVSync(OMAPLFB_DEVINFO *psDevInfo)
 {
+#ifdef IGNORE_SYNC
+	return OMAPLFB_TRUE;
+#endif
 	OMAPLFB_BOOL bDontWait;
 
 	bDontWait = OMAPLFBAtomicBoolRead(&psDevInfo->sBlanked) ||
@@ -860,9 +865,13 @@ static IMG_BOOL ProcessFlipV1(IMG_HANDLE hCmdCookie,
 			};
 			struct tiler_pa_info *pas[1] = { NULL };
 			comp.ovls[0].ba = (u32) psBuffer->sSysAddr.uiAddr;
+#ifdef IGNORE_SYNC
+			dsscomp_gralloc_queue(&comp, pas, true,NULL,NULL);
+#else
 			dsscomp_gralloc_queue(&comp, pas, true,
 								  (void *) psDevInfo->sPVRJTable.pfnPVRSRVCmdComplete,
 								  (void *) psBuffer->hCmdComplete);
+#endif
 		}
 		else
 #endif 
@@ -938,7 +947,7 @@ static IMG_BOOL ProcessFlipV2(IMG_HANDLE hCmdCookie,
 		}
 
 		
-		if(is_tiler_addr((u32)phyAddr.uiAddr))
+		if(psDssData->ovls[k].cfg.color_mode == OMAP_DSS_COLOR_YUV2)
 		{
 			psDssData->ovls[k].ba = (u32)phyAddr.uiAddr;
 			continue;
@@ -987,13 +996,19 @@ static IMG_BOOL ProcessFlipV2(IMG_HANDLE hCmdCookie,
 		psDssData->ovls[i].uv = psDssData->ovls[ix].uv;
 	}
 
+#ifdef IGNORE_SYNC
+	dsscomp_gralloc_queue(psDssData, apsTilerPAs, false,NULL,NULL);
+#else
 	dsscomp_gralloc_queue(psDssData, apsTilerPAs, false,
 						  (void *)psDevInfo->sPVRJTable.pfnPVRSRVCmdComplete,
 						  (void *)hCmdCookie);
+#endif
 
 	for(i = 0; i < k; i++)
 	{
-		tiler_pa_free(apsTilerPAs[i]);
+	if (apsTilerPAs[i])
+		kfree(apsTilerPAs[i]->mem);
+		kfree(apsTilerPAs[i]);
 	}
 
 	return IMG_TRUE;
@@ -1106,24 +1121,33 @@ static OMAPLFB_ERROR OMAPLFBInitFBDev(OMAPLFB_DEVINFO *psDevInfo)
 
 	ulLCM = LCM(psLINFBInfo->fix.line_length, OMAPLFB_PAGE_SIZE);
 
-	printk(": Device %u: Framebuffer physical address: 0x%lx\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->fix.smem_start);
-	printk(": Device %u: Framebuffer virtual address: 0x%lx\n",
-			psDevInfo->uiFBDevID, (unsigned long)psLINFBInfo->screen_base);
-	printk(": Device %u: Framebuffer size: %lu\n",
-			psDevInfo->uiFBDevID, FBSize);
-	printk(": Device %u: Framebuffer virtual width: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.xres_virtual);
-	printk(": Device %u: Framebuffer virtual height: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.yres_virtual);
-	printk(	": Device %u: Framebuffer width: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.xres);
-	printk(	": Device %u: Framebuffer height: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->var.yres);
-	printk(	": Device %u: Framebuffer stride: %u\n",
-			psDevInfo->uiFBDevID, psLINFBInfo->fix.line_length);
-	printk(	": Device %u: LCM of stride and page size: %lu\n",
-			psDevInfo->uiFBDevID, ulLCM);
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer physical address: 0x%lx\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->fix.smem_start));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer virtual address: 0x%lx\n",
+			psDevInfo->uiFBDevID, (unsigned long)psLINFBInfo->screen_base));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer size: %lu\n",
+			psDevInfo->uiFBDevID, FBSize));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer virtual width: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.xres_virtual));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer virtual height: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.yres_virtual));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer width: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.xres));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer height: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->var.yres));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: Framebuffer stride: %u\n",
+			psDevInfo->uiFBDevID, psLINFBInfo->fix.line_length));
+	DEBUG_PRINTK((KERN_INFO DRIVER_PREFIX
+			": Device %u: LCM of stride and page size: %lu\n",
+			psDevInfo->uiFBDevID, ulLCM));
 
 	
 	OMAPLFBPrintInfo(psDevInfo);
@@ -1161,7 +1185,7 @@ static OMAPLFB_ERROR OMAPLFBInitFBDev(OMAPLFB_DEVINFO *psDevInfo)
 		psPVRFBInfo->uiBytesPerPixel = psLINFBInfo->var.bits_per_pixel >> 3;
 		psPVRFBInfo->bIs2D = OMAPLFB_TRUE;
 
-		res = omap_ion_tiler_alloc(gpsIONClient, &sAllocData);
+		res = omap_ion_mem_alloc(gpsIONClient, &sAllocData);
 		psPVRFBInfo->psIONHandle = sAllocData.handle;
 		if (res < 0)
 		{
@@ -1258,12 +1282,13 @@ static OMAPLFB_ERROR OMAPLFBInitFBDev(OMAPLFB_DEVINFO *psDevInfo)
 	{
 		printk(KERN_INFO DRIVER_PREFIX ": %s: Device %u: Unknown FB format\n", __FUNCTION__, uiFBDevID);
 	}
-	
-	psDevInfo->sFBInfo.ulPhysicalWidthmm = 0;
-		//((int)psLINFBInfo->var.width  > 0) ? psLINFBInfo->var.width  : 54;
 
-	psDevInfo->sFBInfo.ulPhysicalHeightmm = 0;
-		//((int)psLINFBInfo->var.height > 0) ? psLINFBInfo->var.height : 90;
+	psDevInfo->sFBInfo.ulPhysicalWidthmm =
+		((int)psLINFBInfo->var.width  > 0) ? psLINFBInfo->var.width  : 90;
+
+	psDevInfo->sFBInfo.ulPhysicalHeightmm =
+		((int)psLINFBInfo->var.height > 0) ? psLINFBInfo->var.height : 54;
+
 	
 	psDevInfo->sFBInfo.sSysAddr.uiAddr = psPVRFBInfo->sSysAddr.uiAddr;
 	psDevInfo->sFBInfo.sCPUVAddr = psPVRFBInfo->sCPUVAddr;
