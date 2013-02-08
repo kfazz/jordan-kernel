@@ -202,11 +202,11 @@ static int mapphone_hsmmc_late_init(struct device *dev)
 
 		pdata->slots[0].set_power = microsd_set_power;
 	} else if (pdev->id == 1) {
-		emmc_regulator = regulator_get(NULL, emmc_regulator_name);
+	/*	emmc_regulator = regulator_get(NULL, emmc_regulator_name);
 		if (IS_ERR(emmc_regulator)) {
 			dev_dbg(dev, "eMMC Vcc regulator missing\n");
 			emmc_regulator = NULL;
-		}
+		}*/
 		pdata->slots[0].set_power = wifi_set_power;
 		printk("set_power = wifi_set_power\n");
 	}
@@ -232,6 +232,7 @@ static void wl12xx_init_card(struct mmc_card *card)
 	card->cccr.low_speed = 0;
 	card->cccr.high_power = 0;
 	card->cccr.high_speed = 0;
+	card->cccr.multi_block = 1;
 	card->cis.vendor = 0x104c;
 	card->cis.device = 0x9066;
 	card->cis.blksize = 512;

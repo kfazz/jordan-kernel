@@ -220,8 +220,7 @@ static struct platform_device *mapphone_devices[] __initdata = {
 
 static struct wl12xx_platform_data mapphone_wlan_data __initdata = {
 	.irq = OMAP_GPIO_IRQ(MAPPHONE_WIFI_IRQ_GPIO),
-	.board_ref_clock = WL12XX_REFCLOCK_26,
-	.board_tcxo_clock = 1,
+	.board_ref_clock = WL12XX_REFCLOCK_26, 
 };
 
 int wifi_set_power(struct device *dev, int slot, int power_on, int vdd)
@@ -549,9 +548,6 @@ static inline void sholes_ramconsole_init(void) {}
 static inline void omap2_ramconsole_reserve_sdram(void) {}
 #endif
 
-#define OLD_MODEM_CONTROL
-#ifdef OLD_MODEM_CONTROL
-#include <linux/omap_mdm_ctrl.h>
 #define SHOLES_BP_READY_AP_GPIO		141
 #define SHOLES_BP_READY2_AP_GPIO	59
 #define SHOLES_BP_RESOUT_GPIO		139
@@ -562,6 +558,12 @@ static inline void omap2_ramconsole_reserve_sdram(void) {}
 #define SHOLES_BPWAKE_STROBE_GPIO	157
 #define SHOLES_APWAKE_TRIGGER_GPIO      141
 #define SHOLES_IPC_USB_SUSP_GPIO	142
+
+
+//#define OLD_MODEM_CONTROL
+#ifdef OLD_MODEM_CONTROL
+#include <linux/omap_mdm_ctrl.h>
+
 
 static struct omap_mdm_ctrl_platform_data omap_mdm_ctrl_platform_data = {
 	.bp_ready_ap_gpio = SHOLES_BP_READY_AP_GPIO,
@@ -621,7 +623,7 @@ static void __init config_mmc2_init(void)
 	omap_mux_init_signal("mmc2_dat2",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
 	omap_mux_init_signal("mmc2_dat3",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
 	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
+	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP ); 
 
 	/* Set internal loopback clock */
 	val = omap_ctrl_readl(OMAP343X_CONTROL_DEVCONF1); 
@@ -632,13 +634,17 @@ static void __init config_mmc2_init(void)
 static void __init omap_mapphone_init(void)
 {
 
-	omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //seems necessary to mux gpio0 with wakeup_en or suspend never returns
+#ifdef OLD_MODEM_CONTROL
+	sholes_omap_mdm_ctrl_init();
+#endif
+
+	//omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //seems necessary to mux gpio0 with wakeup_en or suspend never returns
 
 	/*
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	regulator_has_full_constraints();
+	//regulator_has_full_constraints();
 	omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE4 | OMAP_PIN_OFF_WAKEUPENABLE | OMAP_PIN_INPUT_PULLDOWN );
 
 	omap_serial_init();
@@ -655,15 +661,17 @@ static void __init omap_mapphone_init(void)
 	activate_emu_uart();
 #endif
 
-	//sholes_omap_mdm_ctrl_init();
+	//
 
 
-
+#ifndef OLD_MODEM_CONTROL
 	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
 	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
 	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
 	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
 	mapphone_mdm_ctrl_init();
+#endif
+
 
 	mapphone_cpcap_client_init();
 	mapphone_panel_init();

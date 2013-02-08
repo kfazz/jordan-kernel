@@ -346,7 +346,7 @@ static struct regulator_init_data cpcap_regulator[CPCAP_NUM_REGULATORS] = {
 		.constraints = {
 			.min_uV			= 3300000,
 			.max_uV			= 3300000,
-			.valid_ops_mask		= REGULATOR_CHANGE_STATUS,
+			.valid_ops_mask		= (REGULATOR_CHANGE_VOLTAGE | REGULATOR_CHANGE_STATUS),
 			.apply_uV		= 1,
 		},
 		.num_consumer_supplies	= ARRAY_SIZE(cpcap_vusb_consumers),
