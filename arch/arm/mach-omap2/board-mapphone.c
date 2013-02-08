@@ -55,7 +55,7 @@
 #include "omap_ram_console.h"
 #include "control.h"
 
-#define WILINK_UART_DEV_NAME "/dev/ttyO3" //Need Check it.
+#define WILINK_UART_DEV_NAME "/dev/ttyO1"
 #define MAPPHONE_POWER_OFF_GPIO 176
 #define MAPPHONE_WIFI_PMENA_GPIO 186
 #define MAPPHONE_WIFI_IRQ_GPIO 65

@@ -42,8 +42,8 @@
 #include "musb_core.h"
 #include "omap2430.h"
 
-//#define DEBUG
-//#define MUSB_WORKQUEUE
+#define DEBUG
+#define MUSB_WORKQUEUE
 
 static DEFINE_MUTEX(mpu_lat_mutex);
 struct omap2430_glue {
@@ -192,9 +192,12 @@ void cpcap_musb_notifier_call(unsigned long event)
 	static int hostmode;
 	u32 val;
 	u8 power;
+	printk("cpcap_musb_notifier_call \n");
 	switch (event) {
 	case USB_EVENT_ID:
+		printk("USB_EVENT_ID\n");
 		DBG(1, "ID GND\n");
+		printk("a");
 		/* configure musb into smartidle with wakeup enabled
 		 * smart standby mode.
 		 */
@@ -202,25 +205,51 @@ void cpcap_musb_notifier_call(unsigned long event)
 		DBG(1, "MUSB - Hold L3 Bus and C State Constraint \n");
 		pm_runtime_get_sync(musb->controller);
 		/* Hold a c-state constraint */
+		printk("b");
 		mutex_lock(&mpu_lat_mutex);
+		printk("c");
 		pdata->musb_qos_request = kmalloc(sizeof(struct pm_qos_request_list), GFP_ATOMIC);
+		printk("d");
 		memset(pdata->musb_qos_request, 0, sizeof(struct pm_qos_request_list));
+		printk("d");
 		pm_qos_add_request(pdata->musb_qos_request, PM_QOS_CPU_DMA_LATENCY, 10);
+		printk("f");
 		mutex_unlock(&mpu_lat_mutex);
-
+		printk("g");
 		/* Hold a L3 constraint for better throughput */
 		if (pdata->set_min_bus_tput)
 			pdata->set_min_bus_tput(musb->controller,
 				OCP_INITIATOR_AGENT, (200*1000*4));
+		printk("h\n");
 
 		musb_writel(musb->mregs, OTG_FORCESTDBY, 0);
+		printk("i");
 		val = musb_readl(musb->mregs, OTG_SYSCONFIG);
-
+		printk("j");
 		if (cpu_is_omap44xx())
 			val |= SMARTIDLEWKUP | SMARTSTDBY | ENABLEWAKEUP;
 		else
 			val |= SMARTIDLE | SMARTSTDBY | ENABLEWAKEUP;
 		musb_writel(musb->mregs, OTG_SYSCONFIG, val);
+		printk("k");
+
+		if (data->interface_type == MUSB_INTERFACE_UTMI) {
+			printk("l");
+			//phy_init();
+			printk("m\n");
+			otg_init(musb->xceiv);
+			/* enable VBUS valid, id groung*/
+//			__raw_writel(AVALID | VBUSVALID, ctrl_base + USBOTGHS_CONTROL);
+			printk("n");
+			val = __raw_readl(phymux_base +
+					USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+			printk("o");
+
+			val |= DP_WAKEUPENABLE;
+			__raw_writel(val, phymux_base +
+						USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+						printk("p");
+		}
 
 		hostmode = 1;
 		musb->xceiv->last_event = USB_EVENT_ID;
@@ -232,47 +261,69 @@ void cpcap_musb_notifier_call(unsigned long event)
 		break;
 
 	case USB_EVENT_VBUS:
+	printk("USB_EVENT_VBUS\n");
 		DBG(1, "VBUS Connect\n");
 		DBG(1, "MUSB - Hold L3 Bus and C State Constraint \n");
 		pm_runtime_get_sync(musb->controller);
+	printk("a\n");
 		/* Hold a c-state constraint */
+	printk("b\n");
 		mutex_lock(&mpu_lat_mutex);
+	printk("c\n");
 		pdata->musb_qos_request = kmalloc(sizeof(struct pm_qos_request_list), GFP_ATOMIC);
+	printk("d\n");
 		memset(pdata->musb_qos_request, 0, sizeof(struct pm_qos_request_list));
+	printk("e\n");
 		pm_qos_add_request(pdata->musb_qos_request, PM_QOS_CPU_DMA_LATENCY, 10);
+	printk("f\n");
 		mutex_unlock(&mpu_lat_mutex);
-
+	printk("g\n");
 		/* Hold a L3 constraint for better throughput */
 		if (pdata->set_min_bus_tput) {
+		printk("h\n");
 			pdata->set_min_bus_tput(musb->controller,
 				OCP_INITIATOR_AGENT, (200*1000*4));
 			}
+	printk("i\n");
 
 		/* configure musb into smartidle with wakeup enabled
 		 * smart standby mode.
 		 */
 
+	printk("j\n");
 		musb_writel(musb->mregs, OTG_FORCESTDBY, 0);
+	printk("k\n");
 		val = musb_readl(musb->mregs, OTG_SYSCONFIG);
+	printk("l\n");
 		if (cpu_is_omap44xx())
 			val |= SMARTIDLEWKUP | SMARTSTDBY | ENABLEWAKEUP;
 		else
 			val |= SMARTIDLE | SMARTSTDBY | ENABLEWAKEUP;
 		musb_writel(musb->mregs, OTG_SYSCONFIG, val);
+	printk("m\n");
 
 		if (data->interface_type == MUSB_INTERFACE_UTMI) {
+	printk("n\n");
 			//phy_init();
+	printk("o\n");
 			otg_init(musb->xceiv);
+	printk("p\n");
 			if (!hostmode) {
 				/* Enable VBUS Valid, AValid. Clear SESSEND.*/
+	printk("q\n");
 			//	__raw_writel(IDDIG | AVALID | VBUSVALID, ctrl_base + USBOTGHS_CONTROL);
+		printk("r\n");
 			}
 		}
+			printk("s\n");
 		musb->xceiv->last_event = USB_EVENT_VBUS;
+	printk("t\n");
 		musb->xceiv->state = OTG_STATE_B_IDLE;
+	printk("u\n");
 		break;
 
 	case USB_EVENT_NONE:
+		printk("USB_EVENT_NONE\n");
 		DBG(1, "VBUS Disconnect\n");
 
 		if (data->interface_type == MUSB_INTERFACE_UTMI) {
@@ -281,22 +332,34 @@ void cpcap_musb_notifier_call(unsigned long event)
 			 * not enabled then DISCONNECT interrupt will not be
 			 * reached to mentor
 			 */
+printk("a");
 			otg_set_clk(musb->xceiv, 1);
+			__raw_writel(SESSEND | IDDIG, ctrl_base +
+							USBOTGHS_CONTROL);
+printk("b");
 			if (musb->xceiv->set_vbus) {
+		printk("c");
 				otg_set_vbus(musb->xceiv, 0);
 			}
+			printk("d");
 			otg_shutdown(musb->xceiv);
+		printk("e");
+			//phy_shutdown();
+		printk("f");
 		}
 		/* configure in force idle/ standby */
+		printk("g");
 		musb_writel(musb->mregs, OTG_FORCESTDBY, 1);
 		val = musb_readl(musb->mregs, OTG_SYSCONFIG);
 		val &= ~(SMARTIDLEWKUP | SMARTSTDBY | ENABLEWAKEUP);
 		val |= FORCEIDLE | FORCESTDBY;
+		printk("h");
 		musb_writel(musb->mregs, OTG_SYSCONFIG, val);
 
 		DBG(1, "MUSB - Release L3 Bus and C State Constraint \n");
 		/* Release c-state constraint */
 		mutex_lock(&mpu_lat_mutex);
+		printk("i");
 		pm_qos_remove_request(pdata->musb_qos_request);
 		kfree(pdata->musb_qos_request);
 		mutex_unlock(&mpu_lat_mutex);
@@ -305,6 +368,17 @@ void cpcap_musb_notifier_call(unsigned long event)
 			pdata->set_min_bus_tput(musb->controller,
 				OCP_INITIATOR_AGENT, -1);
 
+		if (data->interface_type == MUSB_INTERFACE_UTMI) {
+			printk("j");
+			val = __raw_readl(phymux_base +
+					USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+
+			printk("k");
+			val &= ~DP_WAKEUPENABLE;
+			__raw_writel(val, phymux_base +
+						USBA0_OTG_CE_PAD1_USBA0_OTG_DP);
+				printk("l");
+		}
 		musb->xceiv->last_event = USB_EVENT_NONE;
 		musb->xceiv->state = OTG_STATE_B_IDLE;
 		if (hostmode) {
@@ -737,6 +811,7 @@ err1:
 
 static void omap2430_musb_enable(struct musb *musb)
 {
+	printk("omap2430_musb_enable\n");
 	struct device *dev = musb->controller;
 	struct musb_hdrc_platform_data *pdata = dev->platform_data;
 	struct omap_musb_board_data *data = pdata->board_data;
