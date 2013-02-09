@@ -361,6 +361,8 @@ IS_OMAP_TYPE(3517, 0x3517)
 # define cpu_is_ti816x()		is_ti816x()
 #endif
 
+#define cpu_is_omap3xxx()			(cpu_is_omap3630() || cpu_is_omap34xx())
+
 # if defined(CONFIG_ARCH_OMAP4)
 # undef cpu_is_omap44xx
 # undef cpu_is_omap443x

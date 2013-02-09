@@ -29,10 +29,10 @@ ccflags-y += \
 	-DPLAT_TI35x \
 	-DPVR_LDM_PLATFORM_PRE_REGISTERED_DEV="\"pvrsrvkm\"" \
 	-DPVR_NO_FULL_CACHE_OPS \
-	-DIGNORE_SYNC \
-	-Idrivers/gpu/pvr/sgx
+	-Idrivers/gpu/pvr/sgx \
+	#-DFORCE_AUTO 
 
-	#-DFORCE_AUTO \
+
 
 ccflags-$(CONFIG_PVR_SGXCORE_540) += \
 	-DSGX540 -DSUPPORT_SGX540 \
