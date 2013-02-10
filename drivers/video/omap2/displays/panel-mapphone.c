@@ -90,6 +90,26 @@ static unsigned int panel_debug;
 
 #define INVALID_VALUE	0xFFFF
 
+#ifdef CONFIG_MACH_OMAP_MAPPHONE_DEFY
+/**
+ * RDDPM (Read Display Power Mode) - response to EDISCO_CMD_GET_POWER_MODE.
+ * D7: Step up circuit Voltage Status (0 = off or fault, 1 = on/working)
+ * D6: Idle Mode (0 = off, 1 = on)
+ * D5: Partial Mode (0 = off, 1 = on)
+ * D4: Wake/Sleep Mode (0 = "sleep in"/sleeping, 1 = "sleep out"/awake)
+ * D3: Display Normal Mode (0 = off, 1 = on)
+ * D2: Display Status (0 = off, 1 = on)
+ * D1: Reserved - always 0
+ * D0: Reserved - always 0
+ */
+#define REG_DPM_STEP_UP_CIRCUIT	(1 << 7)
+#define REG_DPM_IDLE_MODE	(1 << 6)
+#define REG_DPM_PARTIAL_MODE	(1 << 5)
+#define REG_DPM_WAKE_MODE	(1 << 4)
+#define REG_DPM_NORMAL_MODE	(1 << 3)
+#define REG_DPM_DISPLAY_STATUS	(1 << 2)
+#endif
+
 /*
  *This must match with schema.xml section "device-id-value"
  *Name convention:
@@ -361,10 +381,13 @@ static void mapphone_esd_work(struct work_struct *work)
 		goto err;
 	}
 
+#ifndef CONFIG_MACH_OMAP_MAPPHONE_DEFY
 	if (atomic_read(&panel_data->state) == PANEL_ON)
-		expected_mode = 0x1C; // 0x9c;
+		/* REG_DPM_STEP_UP_CIRCUIT | REG_DPM_DISPLAY_STATUS | REG_DPM_NORMAL_MODE | REG_DPM_WAKE_MODE */
+		expected_mode = 0x9c;
 	else
-		expected_mode = 0x18; // 0x98;
+		/* REG_DPM_STEP_UP_CIRCUIT | REG_DPM_NORMAL_MODE | REG_DPM_WAKE_MODE */
+		expected_mode = 0x98;
 
 	DBG("ESD Check - read mode = 0x%02x, expected = 0x%02x\n", power_mode,
 		expected_mode);
@@ -376,6 +399,26 @@ static void mapphone_esd_work(struct work_struct *work)
 			power_mode, expected_mode);
 		goto err;
 	}
+#else
+	/* Some Defy/Milestone displays don't have REG_DPM_STEP_UP_CIRCUIT set. */
+	if (atomic_read(&panel_data->state) == PANEL_ON)
+		/* 0x1c */
+		expected_mode = REG_DPM_DISPLAY_STATUS | REG_DPM_NORMAL_MODE | REG_DPM_WAKE_MODE;
+	else
+		/* 0x18 */
+		expected_mode = REG_DPM_NORMAL_MODE | REG_DPM_WAKE_MODE;
+
+	DBG("ESD Check - read mode = 0x%02x, expected to match = 0x%02x\n",
+	        power_mode, expected_mode);
+
+	if (!(power_mode & expected_mode)) {
+		dev_err(&dssdev->dev,
+			"Power mode in incorrect state, "
+			"mode = 0x%02x, expected to match = 0x%02x\n",
+			power_mode, expected_mode);
+		goto err;
+	}
+#endif
 
 	dsi_from_dss_runtime_put(dssdev);
 	dsi_bus_unlock(dssdev);
@@ -386,7 +429,6 @@ static void mapphone_esd_work(struct work_struct *work)
 	mutex_unlock(&mp_data->lock);
 	return;
 err:
-#ifndef FACTORY_BOARD_TEST
 	dev_err(&dssdev->dev, "ESD: performing LCD reset\n");
 	printk(KERN_INFO"ESD: mapphone_panel_power_off.\n");
 	mapphone_panel_power_off(dssdev, false);
@@ -394,7 +436,6 @@ err:
 	mdelay(20);
 	printk(KERN_INFO"ESD: mapphone_panel_power_on.\n");
 	r = mapphone_panel_power_on(dssdev);
-#endif
 	/*
 	 * dssdev->state and panel_data->state was set to DISABLED/OFF in
 	 * mapphone_panel_power_off(), after power_on(), need to set
@@ -1857,7 +1898,6 @@ static int dsi_mipi_cm_480_854_panel_enable(struct omap_dss_device *dssdev)
 	if (ret)
 		printk(KERN_ERR "failed to send LANE_CONFIG\n");
 
-#if 0
 	msleep(10);
 
 	/* Forcing display inversion off for hardware issue
@@ -1871,7 +1911,7 @@ static int dsi_mipi_cm_480_854_panel_enable(struct omap_dss_device *dssdev)
 				0x00, EDISCO_CMD_SET_INVERSION_OFF);
 	if (ret)
 		printk(KERN_ERR "failed to send EDISCO_CMD_SET_INVERSION_OFF \n");
-#endif
+
 	msleep(10);
 
 	/* 2nd param 0 = WVGA; 1 = WQVGA */
@@ -4100,6 +4140,7 @@ static void set_vc_channels(struct omap_dss_device *dssdev)
 	}
 }
 
+#if 0
 /* see mapphone_panel_driver struct declaration. */
 static int mapphone_get_vc_channels(struct omap_dss_device *dssdev,
 		u8 *dsi_vc_cmd_chnl, u8 *dsi_vc_video_chnl)
@@ -4115,6 +4156,7 @@ static int mapphone_get_vc_channels(struct omap_dss_device *dssdev,
 
 	return 0;
 }
+#endif
 
 static int mapphone_panel_start(struct omap_dss_device *dssdev)
 {
@@ -4342,7 +4384,7 @@ static int mapphone_panel_enable_te_locked(struct omap_dss_device *dssdev,
 	r = omapdss_dsi_enable_te(dssdev, enable);
 #else
 	/* On 2.6.32 TE was always disabled. */
-	r = omapdss_dsi_enable_te(dssdev, enable); //false
+	r = omapdss_dsi_enable_te(dssdev, false);
 #endif
 
 error:
@@ -4389,13 +4431,14 @@ static int mapphone_panel_enable_te(struct omap_dss_device *dssdev, bool enable)
 	return r;
 }
 
-
+#if 0
 /* see mapphone_panel_driver struct declaration. */
 static bool mapphone_panel_manual_te_trigger(struct omap_dss_device *dssdev)
 {
 	struct mapphone_dsi_panel_data *panel_data = get_panel_data(dssdev);
 	return panel_data->manual_te_trigger;
 }
+#endif
 
 static int mapphone_panel_rotate(struct omap_dss_device *display, u8 rotate)
 {
@@ -4524,7 +4567,7 @@ static enum omap_dss_update_mode mapphone_panel_get_update_mode(
 		return OMAP_DSS_UPDATE_MANUAL;
 }
 
-
+#if 0
 /* see mapphone_panel_driver struct declaration. */
 static int mapphone_panel_reg_read(struct omap_dss_device *dssdev,
 				u8 address, u16 size, u8 *buf,
@@ -4599,6 +4642,7 @@ end:
 	DBG("write reg done, r = %d\n", r);
 	return r;
 }
+#endif
 
 static u8 amoled_bl_data_ws[][26] = {
 	{0xfa, 0x02, 0x20, 0x00, 0x20, 0xa0, 0x00, 0xa0, 0xd2, 0xa0,
@@ -4859,6 +4903,7 @@ static struct omap_dss_driver mapphone_panel_driver = {
 	.set_timings		= mapphone_panel_set_timings,
 	.check_timings		= mapphone_panel_check_timings,
 
+#if 0
 	/*
 	 * These are not supported in the DSS version in 3.0.8,
 	 * but they might be interesting later ;-).
@@ -4871,6 +4916,7 @@ static struct omap_dss_driver mapphone_panel_driver = {
 	.reg_read		= mapphone_panel_reg_read,
 	.reg_write		= mapphone_panel_reg_write,
 	.get_dsi_vc_chnls	= mapphone_get_vc_channels,
+#endif
 
 	.driver = {
 		.name = "mapphone-panel",

@@ -252,7 +252,7 @@ int set_dss_ovl_info(struct dss2_ovl_info *oi)
 	info.vaddr = NULL;
 
 	/* check for TILER 2D buffer */
-	if ((!cpu_is_omap3xxx()) &&
+	if ((!cpu_is_omap3630()) &&
 		info.paddr >= 0x60000000 && info.paddr < 0x78000000) {
 		int bpp = 1 << ((info.paddr >> 27) & 3);
 		struct tiler_view_t t;
@@ -301,7 +301,7 @@ int set_dss_ovl_info(struct dss2_ovl_info *oi)
 				(crop.y >> 1) * cfg->stride;
 
 #ifdef CONFIG_OMAP2_VRFB
-		if (cpu_is_omap3xxx() &&
+		if (cpu_is_omap3630() &&
 			(info.paddr >= 0x70000000 &&
 						info.paddr <= 0x7FFFFFFF) ||
 			(info.paddr >= 0xE0000000 &&
@@ -385,7 +385,7 @@ struct omap_overlay_manager *find_dss_mgr(int display_ix)
 	int i;
 
 	sprintf(name, "display%d", display_ix);
-	if (cpu_is_omap3xxx()) {
+	if (cpu_is_omap3630()) {
 		mgr = omap_dss_get_overlay_manager(display_ix);
 		return mgr;
 	} else {

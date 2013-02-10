@@ -67,7 +67,7 @@ static inline void __log_state(dsscomp_t c, void *fn, u32 ev)
 {
 #ifdef CONFIG_DSSCOMP_DEBUG_LOG
 	if (c->dbg_used < ARRAY_SIZE(c->dbg_log)) {
-		u32 t = dsscomp_debug_log_timestamp();
+		u32 t = (u32) ktime_to_ms(ktime_get());
 		c->dbg_log[c->dbg_used].t = t;
 		c->dbg_log[c->dbg_used++].state = c->state;
 		__log_event(20 * c->ix + 20, t, c, ev ? "%pf on %s" : "%pf",
@@ -179,7 +179,7 @@ dsscomp_t dsscomp_new(struct omap_overlay_manager *mgr)
 	comp->ix = ix;	/* save where this composition came from */
 	comp->ovl_mask = comp->ovl_dmask = 0;
 	comp->frm.sync_id = 0;
-	if (cpu_is_omap3xxx())
+	if (cpu_is_omap3630())
 		comp->frm.mgr.ix = display_ix < 2 ? 0 : 1;
 	else
 		comp->frm.mgr.ix = display_ix;
@@ -393,14 +393,6 @@ static void dsscomp_mgr_delayed_cb(struct work_struct *work)
 	BUG_ON(comp->state == DSSCOMP_STATE_ACTIVE);
 	ix = comp->ix;
 
-	if (status == DSS_COMPLETION_PROGRAMMED && comp->blank) {
-		/* composition is no longer displayed */
-		log_event(20 * comp->ix + 20, 0, comp, "%pf on %s (blank)",
-				(u32) dsscomp_mgr_delayed_cb,
-				(u32) log_status_str(status));
-		status = DSS_COMPLETION_RELEASED;
-	}
-
 	/* call extra callbacks if requested */
 	if (comp->extra_cb)
 		comp->extra_cb(comp->extra_cb_data, status);
@@ -436,10 +428,6 @@ static void dsscomp_mgr_delayed_cb(struct work_struct *work)
 static u32 dsscomp_mgr_callback(void *data, int id, int status)
 {
 	struct dsscomp_data *comp = data;
-	u32 mask = ~0;
-
-	if (status == DSS_COMPLETION_PROGRAMMED && comp->blank)
-		mask = 0;
 
 	if (status == DSS_COMPLETION_PROGRAMMED ||
 	    (status == DSS_COMPLETION_DISPLAYED &&
@@ -453,7 +441,7 @@ static u32 dsscomp_mgr_callback(void *data, int id, int status)
 	}
 
 	/* get each callback only once */
-	return ~status & mask;
+	return ~status;
 }
 
 static inline bool dssdev_manually_updated(struct omap_dss_device *dev)
@@ -491,7 +479,7 @@ static int dsscomp_apply(dsscomp_t comp)
 
 	/* OMAP3 supports max two composition. comp->ix = 0 supports either
 	LCD or HDMI panel. comp->ix =1 supports VENC type display only*/
-	if (cpu_is_omap3xxx()) {
+	if (cpu_is_omap3630()) {
 		if (!comp->ix) {
 			for (i = 0; i < cdev->num_displays; i++) {
 				if (cdev->displays[i]->state ==
@@ -549,8 +537,6 @@ static int dsscomp_apply(dsscomp_t comp)
 			goto skip_ovl_set;
 		}
 		if (ovl->manager != mgr) {
-			mutex_lock(&mtx);
-			if (!mgrq[comp->ix].blanking) {
 			/*
 			 * Ideally, we should call ovl->unset_manager(ovl),
 			 * but it may block on go even though the disabling
@@ -559,15 +545,6 @@ static int dsscomp_apply(dsscomp_t comp)
 			 */
 			ovl->manager = NULL;
 			r = ovl->set_manager(ovl, mgr);
-			} else {
-				/* Ignoring manager change during blanking. */
-				pr_info_ratelimited("dsscomp_apply skip "
-					"set_manager(%s) for ovl%d while blank."
-					, mgr->name, oix);
-				r = -ENODEV;
-			}
-			mutex_unlock(&mtx);
-
 			if (r)
 				goto skip_ovl_set;
 		}
@@ -691,7 +668,7 @@ int dsscomp_state_notifier(struct notifier_block *nb,
 	enum omap_dss_display_state state = arg;
 	struct omap_overlay_manager *mgr = dssdev->manager;
 	if (mgr) {
-//		if (!cpu_is_omap3xxx()) {
+		if (!cpu_is_omap3630()) {
 			mutex_lock(&mtx);
 			if (state == OMAP_DSS_DISPLAY_DISABLED) {
 				mgr->blank(mgr, true);
@@ -700,7 +677,7 @@ int dsscomp_state_notifier(struct notifier_block *nb,
 				mgrq[mgr->id].blanking = false;
 			}
 			mutex_unlock(&mtx);
-//		}
+		}
 	}
 	return 0;
 }

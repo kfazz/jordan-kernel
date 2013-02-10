@@ -133,15 +133,15 @@ static struct omap_opp_def __initdata omap34xx_opp_def_list[] = {
 
 
 //TODO: try changing clocks to "l3_ick"
-	OPP_INITIALIZER("l3_main", "l3_ick", "core", false,  41500000, OMAP3430_VDD_CORE_OPP1_UV),			//32
+	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", false,  40000000, OMAP3430_VDD_CORE_OPP1_UV),			//32
 	/* L3 OPP2 */
-	OPP_INITIALIZER("l3_main", "l3_ick", "core", true,   83000000, OMAP3430_VDD_CORE_OPP2_UV),			//39
+	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", true,   80000000, OMAP3430_VDD_CORE_OPP2_UV),			//39
 	/* L3 OPP3 */
-	OPP_INITIALIZER("l3_main", "l3_ick", "core", true,  166000000, OMAP3430_VDD_CORE_OPP3_UV), //45		//46
+	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", true,  160000000, OMAP3430_VDD_CORE_OPP3_UV), //45		//46
 	/*overclock*/
-	OPP_INITIALIZER("l3_main", "l3_ick", "core", false, 200000000, OMAP3430_VDD_CORE_OPP3_UV),
+	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", false, 200000000, OMAP3430_VDD_CORE_OPP3_UV),
 
-	OPP_INITIALIZER("l3_main", "l3_ick", "core", false, 220000000, OMAP3430_VDD_CORE_OPP3_UV),
+	OPP_INITIALIZER("l3_main", "dpll3_ck", "core", false, 220000000, OMAP3430_VDD_CORE_OPP3_UV),
 
 	/* DSP OPP1 */
 	OPP_INITIALIZER("iva", "dpll2_ck", "mpu_iva", true, 90000000, OMAP3430_VDD_MPU_OPP1_UV),

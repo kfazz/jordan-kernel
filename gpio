@@ -1,0 +1,55 @@
+GPIOs 0-31, gpio:
+ gpio-0   (cpcap-irq           ) in  lo irq-160 edge-rising wakeup
+ gpio-8   (wl127x_wake_gpio    ) out hi
+ gpio-10  (sholes dock north   ) in  hi irq-170 edge-both wakeup
+ gpio-28  (akm8973 reset       ) out hi
+
+GPIOs 32-63, gpio:
+ gpio-34  (gpio_kp_in          ) in  hi irq-194 level-low wakeup
+ gpio-35  (gpio_kp_in          ) in  hi irq-195 level-low wakeup
+ gpio-36  (gpio_kp_in          ) in  hi irq-196 level-low wakeup
+ gpio-37  (gpio_kp_in          ) in  hi irq-197 level-low wakeup
+ gpio-38  (gpio_kp_in          ) in  hi irq-198 level-low wakeup
+ gpio-39  (gpio_kp_in          ) in  hi irq-199 level-low wakeup
+ gpio-40  (gpio_kp_in          ) in  hi irq-200 level-low wakeup
+ gpio-41  (gpio_kp_in          ) in  hi irq-201 level-low wakeup
+ gpio-43  (gpio_kp_out         ) out lo
+ gpio-53  (gpio_kp_out         ) out lo
+ gpio-54  (gpio_kp_out         ) out lo
+ gpio-55  (gpio_kp_out         ) out lo
+ gpio-56  (gpio_kp_out         ) out lo
+ gpio-57  (gpio_kp_out         ) out lo
+ gpio-58  (gpio_kp_out         ) out lo
+ gpio-59  (BP Flash Ready      ) in  lo
+ gpio-63  (gpio_kp_out         ) out lo
+
+GPIOs 64-95, gpio:
+ gpio-65  (wifi_irq            ) in  lo
+ gpio-92  (sholes als int      ) in  lo
+
+GPIOs 96-127, gpio:
+ gpio-99  (sholes touch irq    ) in  hi irq-259 ?trigger?
+ gpio-100 (gpio_kp_in          ) in  lo irq-260 edge-both wakeup
+ gpio-111 (sholes dock south   ) in  hi irq-271 edge-both wakeup
+
+GPIOs 128-159, gpio:
+ gpio-136 (display reset       ) out hi
+ gpio-137 (BP Power On         ) out lo
+ gpio-138 (AP to BP PS Hold    ) out lo
+ gpio-139 (BP Reset Output     ) in  hi
+ gpio-141 (BP -> AP IPC trigger) in  lo irq-301 edge-both wakeup
+ gpio-142 (ipc_usb_susp        ) out lo
+ gpio-143 (sholes audio path   ) out hi
+ gpio-157 (UART AP -> BP wakeup) out lo
+
+GPIOs 160-191, gpio:
+ gpio-163 (mmc_detect          ) in  lo irq-323 edge-both
+ gpio-164 (sholes touch reset  ) out hi
+ gpio-175 (akm8973 irq         ) in  lo
+ gpio-176 (sholes power off    ) out hi
+ gpio-177 (gpio_kp_in          ) in  lo irq-337 edge-both wakeup
+ gpio-178 (wl127x_hostwake_gpio) in  lo
+ gpio-179 (wl127x_bt_nshutdown_) out lo
+ gpio-180 (sfh7743 proximity in) in  hi irq-340 edge-both
+ gpio-181 (vibrator            ) out lo
+ gpio-186 (wifi_pmena          ) out lo

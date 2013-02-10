@@ -305,7 +305,7 @@ config MACH_OMAP_MAPPHONE
 	bool "MAPPHONE board(Motorola)"
 	depends on ARCH_OMAP3
 	default y
-	select OMAP_PACKAGE_CBP
+	select OMAP_PACKAGE_CBB
 
 config MACH_OMAP_MAPPHONE_DEFY
 	bool "Defy (MB525/MB526) MAPPHONE boards (Motorola)"

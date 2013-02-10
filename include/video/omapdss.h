@@ -674,7 +674,6 @@ struct omap_dss_driver {
 
 	int (*enable)(struct omap_dss_device *display);
 
-	int (*framedone)(struct omap_dss_device *display);
 	void (*disable)(struct omap_dss_device *display);
 	int (*suspend)(struct omap_dss_device *display);
 	int (*resume)(struct omap_dss_device *display);
@@ -691,8 +690,6 @@ struct omap_dss_driver {
 
 	int (*enable_te)(struct omap_dss_device *dssdev, bool enable);
 	int (*get_te)(struct omap_dss_device *dssdev);
-	bool (*support_te)(struct omap_dss_device *dssdev);
-	bool (*manual_te_trigger)(struct omap_dss_device *dssdev);
 
 	u8 (*get_rotate)(struct omap_dss_device *dssdev);
 	int (*set_rotate)(struct omap_dss_device *dssdev, u8 rotate);
@@ -730,14 +727,6 @@ struct omap_dss_driver {
 
 	int (*set_mode)(struct omap_dss_device *dssdev,
 			struct fb_videomode *mode);
-
-	int (*reg_read)(struct omap_dss_device *dssdev, u8 address, u16 size,
-			u8 *buf, u8 use_hs_mode);
-	int (*reg_write)(struct omap_dss_device *dssdev, u16 size, u8 *buf,
-		u8 use_hs_mode);
-
-	int (*get_dsi_vc_chnls)(struct omap_dss_device *dssdev,
-			u8 *dsi_vc_cmd_chnl, u8 *dsi_vc_video_chnl);
 
 	/* for wrapping around state changes */
 	void (*disable_orig)(struct omap_dss_device *display);

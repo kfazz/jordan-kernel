@@ -29,14 +29,14 @@ static struct omap_sdrc_params JEDEC_JESD209A_sdrc_params[] = {
 		.mr          = 0x00000032,
 	},
 	[2] = {
-		.rate        = 166000000,
+		.rate        = 160000000,
 		.actim_ctrla = 0xBA9DB4C6,
 		.actim_ctrlb = 0x00022220,
 		.rfr_ctrl    = 0x0004AE02,
 		.mr	     = 0x00000032,
 	},
 	[3] = {
-		.rate        = 83000000,
+		.rate        = 80000000,
 		.actim_ctrla = 0x49512284,
 		.actim_ctrlb = 0x0001120C,
 		.rfr_ctrl    = 0x23E02,

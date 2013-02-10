@@ -427,7 +427,6 @@ static long comp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		struct dsscomp_display_info dis;
 		struct dsscomp_check_ovl_data chk;
 		struct dsscomp_setup_display_data sdis;
-		struct dsscomp_wait_num_comps_data wnc;
 	} u;
 
 	dsscomp_gralloc_init(cdev);
@@ -477,24 +476,6 @@ static long comp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	{
 		r = copy_from_user(&u.sdis, ptr, sizeof(u.sdis)) ? :
 		    setup_display(cdev, &u.sdis);
-		break;
-	}
-	case DSSCIOC_WAIT_NUM_COMPS:
-	{
-		r = copy_from_user(&u.wnc, ptr, sizeof(u.wnc));
-		if (!r) {
-			r = wait_event_interruptible_timeout(
-				cdev->waitq_comp_complete,
-				dsscomp_flip_queue_length() <= u.wnc.max_comps,
-				usecs_to_jiffies(u.wnc.timeout_us));
-			dsscomp_flip_queue_length_invalidate();
-			r = r ? : -ETIMEDOUT;
-			if (r > 0) {
-				u.wnc.timeout_us = jiffies_to_usecs(r);
-				r = copy_to_user(ptr, &u.wnc, sizeof(u.wnc));
-			}
-		}
-		break;
 	}
 	default:
 		r = -EINVAL;
@@ -551,9 +532,6 @@ static int dsscomp_probe(struct platform_device *pdev)
 		pr_err("dsscomp: failed to register misc device.\n");
 		return ret;
 	}
-
-	init_waitqueue_head(&cdev->waitq_comp_complete);
-
 	cdev->dbgfs = debugfs_create_dir("dsscomp", NULL);
 	if (IS_ERR_OR_NULL(cdev->dbgfs))
 		dev_warn(DEV(cdev), "failed to create debug files.\n");
@@ -642,9 +620,7 @@ void dsscomp_kdump(void)
 	};
 	int i;
 
-#ifdef CONFIG_DSSCOMP_DEBUG_LOG
 	dsscomp_dbg_events(&s);
-#endif
 	dsscomp_dbg_comps(&s);
 	dsscomp_dbg_gralloc(&s);
 
