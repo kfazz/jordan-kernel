@@ -127,7 +127,6 @@ static void* ProcSeqOff2ElementMemoryRecords(struct seq_file * sfile, loff_t off
 
 #endif
 
-
 #if defined(DEBUG_LINUX_MEM_AREAS)
 typedef struct _DEBUG_LINUX_MEM_AREA_REC
 {
@@ -1187,6 +1186,9 @@ err_free:
     goto err_out;
 }
 
+#ifdef CONFIG_OMAP3_ISP_RESIZER_ON_720P_VIDEO
+    int isp_reset;
+#endif
 
 IMG_VOID
 FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea)
@@ -1201,6 +1203,9 @@ FreeIONLinuxMemArea(LinuxMemArea *psLinuxMemArea)
     DebugMemAllocRecordRemove(DEBUG_MEM_ALLOC_TYPE_ION,
                               psLinuxMemArea->uData.sIONTilerAlloc.psIONHandle[0],
                               __FILE__, __LINE__);
+#endif
+#ifdef CONFIG_OMAP3_ISP_RESIZER_ON_720P_VIDEO
+    isp_reset = 1;
 #endif
 
     for(i = 0; i < 2; i++)
