@@ -682,7 +682,6 @@ static void __init omap_mapphone_init(void)
 {
 
 
-
 	/* Ensure SDRC pins are mux'd for self-refresh */
 	//omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
 	//omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
@@ -708,7 +707,7 @@ static void __init omap_mapphone_init(void)
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	regulator_has_full_constraints();
+	//regulator_has_full_constraints();
 
 	//omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE4 | OMAP_PIN_OFF_WAKEUPENABLE | OMAP_PIN_INPUT_PULLDOWN );
 
@@ -719,9 +718,8 @@ static void __init omap_mapphone_init(void)
 
 	mapphone_i2c_init();
 	mapphone_padconf_init();	/*mux is done here, so anything dependant should go after*/
-
-
 	omap3_mux_init(board_mux, OMAP_PACKAGE_CBC); //needed for mux funcs to work
+	power_modem(); //try power modem after mux is done
 
 	omap_register_ion();
 	platform_add_devices(mapphone_devices, ARRAY_SIZE(mapphone_devices));
@@ -730,7 +728,6 @@ static void __init omap_mapphone_init(void)
 	/* emu-uart function will override devtree iomux setting */
 	activate_emu_uart();
 #endif
-
 	mapphone_cpcap_client_init();
 	mapphone_panel_init();
 	mapphone_als_init();
@@ -739,8 +736,6 @@ static void __init omap_mapphone_init(void)
 	//usb_musb_init(NULL);
 	mapphone_musb_init();
 	mapphone_usbhost_init();
-
-
 
 	config_mmc2_init(); //setup mux and loopback clock before probe
 	mapphone_hsmmc_init();
@@ -761,7 +756,7 @@ static void __init omap_mapphone_init(void)
 	val = omap_readw(0x4800219c); //gpio 164
 	printk("uart3_rts_sd (gpio164) mux: %lu \n", val);
 
-	power_modem(); //try power modem after usb is up
+
 
 }
 

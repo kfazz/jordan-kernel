@@ -380,8 +380,8 @@ static int mapphone_usb_fsport_startup(void)
 		return r;
 	}
 	gpio_direction_output(MAPPHONE_IPC_USB_SUSP_GPIO, 0);
-	printk(KERN_INFO "%s - Configured GPIO 95 for USB Suspend \n",
-			__func__);
+	printk(KERN_INFO "%s - Configured GPIO %d for USB Suspend \n",
+			__func__,MAPPHONE_IPC_USB_SUSP_GPIO);
 	return 0;
 }
 
@@ -442,42 +442,20 @@ failed_clk1:
 }
 
 static struct usbhs_omap_board_data usbhs_bdata  = {
-	.port_mode[0] = OMAP_OHCI_PORT_MODE_PHY_4PIN_DPDM,
-	.port_mode[1] = OMAP_OHCI_PORT_MODE_PHY_4PIN_DPDM,
+	.port_mode[0] = 0,
+	.port_mode[1] = 0,
 	.port_mode[2] = OMAP_OHCI_PORT_MODE_PHY_4PIN_DPDM,
 	.phy_reset  = false,
 	.reset_gpio_port[0]  = -EINVAL,
 	.reset_gpio_port[1]  = -EINVAL,
 	.reset_gpio_port[2]  = -EINVAL,
-	.ehci_phy_vbus_not_used = false,
 	.es2_compatibility = true,
 };
 
 
 void __init mapphone_usbhost_init(void)
 {
-	struct device_node *node;
-	const void *prop;
-	int i, size;
-	int feature_usbhost = 1;
-	int feature_ipc_ohci_phy = 0;
-	int feature_ipc_ehci_phy = 0;
-	int ipc_hsusb_aux_clk = -1;
-
-
-
-		usbhs_bdata.ohci_phy_suspend = mapphone_usb_fsport_suspend;
-		mapphone_usb_fsport_startup();
-
-	if (feature_ipc_ehci_phy) {
-		usbhs_bdata.ehci_phy_vbus_not_used = true;
-		mapphone_hsusb_ext_ts_init(ipc_hsusb_aux_clk);
-		for (i = 0; i < OMAP3_HS_USB_PORTS; i++) {
-			if (usbhs_bdata.port_mode[i] == OMAP_EHCI_PORT_MODE_PHY)
-				usbhs_bdata.transceiver_clk[i] =
-					ipc_ext_usb_clk;
-		}
-	}
-
+	usbhs_bdata.ohci_phy_suspend = mapphone_usb_fsport_suspend;
+	mapphone_usb_fsport_startup();
 	usbhs_init(&usbhs_bdata);
 }
