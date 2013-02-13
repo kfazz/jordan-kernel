@@ -21,6 +21,7 @@
 #include <linux/isl29030.h>
 #include <linux/bu52014hfv.h>
 #include <linux/vib-gpio.h>
+#include <linux/qtouch_obp_ts.h>
 
 #define MAPPHONE_LM_3530_INT_GPIO	92
 #define MAPPHONE_AKM8973_INT_GPIO	175
@@ -835,13 +836,9 @@ static int initialize_i2c_bus_info
 static struct i2c_board_info __initdata
 	mapphone_i2c_1_boardinfo[] = {
 	{
-		I2C_BOARD_INFO("invalid_touch_panel", 0x11),
+		I2C_BOARD_INFO(QTOUCH_TS_NAME, 0x11),
 		.platform_data = NULL,
 		.irq = OMAP_GPIO_IRQ(99),  /* Legacy val */
-	},
-	{
-		I2C_BOARD_INFO("invalid_touch_btn", 0x11),
-		.platform_data = NULL,
 	},
 	{
 		I2C_BOARD_INFO(LD_LM3530_NAME, 0x38),
@@ -884,7 +881,6 @@ void __init mapphone_i2c_init(void)
 
 	/* touch_init() must run before i2c_init() */
 	mapphone_touch_panel_init(&mapphone_i2c_1_boardinfo[0]);
-	mapphone_touch_btn_init(&mapphone_i2c_1_boardinfo[1]);
 
 	omap_register_i2c_bus_board_data(1, &mapphone_i2c_1_bus_pdata);
 	omap_register_i2c_bus_board_data(2, &mapphone_i2c_2_bus_pdata);

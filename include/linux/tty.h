@@ -46,7 +46,7 @@
 #define N_GIGASET_M101	16	/* Siemens Gigaset M101 serial DECT adapter */
 #define N_SLCAN		17	/* Serial / USB serial CAN Adaptors */
 #define N_PPS		18	/* Pulse per Second */
-#define N_V253		19	/* Codec control over voice modem */
+#define N_V253		27	/* Codec control over voice modem */
 #define N_CAIF		20      /* CAIF protocol for talking to modems */
 #define N_GSM0710	21	/* GSM 0710 Mux */
 #define N_TI_WL		22	/* for TI's WL BT, FM, GPS combo chips */
@@ -54,7 +54,7 @@
 #define N_TRACEROUTER	24	/* Trace data routing for MIPI P1149.7 */
 #define N_TD_TS2710_UART	25	/* 3GPP TS 27.010 MUX over UART */
 #define N_TD_TS2710_USB	26	/* 3GPP TS 27.010 MUX over USB */
-#define N_TS2710        27      /* 3GPP TS 27.010 MUX*/
+#define N_TS2710        19      /* 3GPP TS 27.010 MUX*/
 #define N_QMI		28	/* MUX over SPI */
 
 /*

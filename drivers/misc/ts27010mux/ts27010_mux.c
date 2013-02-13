@@ -77,8 +77,7 @@
 #define TS0710MUX_MINOR_START 0
 
 /* 2500ms, for BP UART hardware flow control AP UART  */
-#define TS0710MUX_TIME_OUT 2500
-#define TS0710MUX_CLOSE_TIME_OUT 90
+#define TS0710MUX_TIME_OUT 250
 
 #define CRC_VALID 0xcf
 
@@ -1044,14 +1043,14 @@ static int ts0710_close_channel(u8 dlci)
 	}
 
 	d->state = DISCONNECTING;
-	try = 1;
+	try = 3;
 	while (try--) {
 		ts27010_send_disc(ts0710, dlci);
 		mutex_unlock(&d->lock);
 		retval = wait_event_interruptible_timeout(d->close_wait,
 							  d->state !=
 							  DISCONNECTING,
-						TS0710MUX_CLOSE_TIME_OUT);
+							  TS0710MUX_TIME_OUT);
 		mutex_lock(&d->lock);
 
 		if (retval == 0)

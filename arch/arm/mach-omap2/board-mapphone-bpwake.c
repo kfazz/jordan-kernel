@@ -31,7 +31,7 @@ static struct wake_lock baseband_wakeup_wakelock;
 static irqreturn_t mapphone_bpwake_irqhandler(int irq, void *unused)
 {
 #ifdef CONFIG_PM
-	//omap_uart_block_sleep(MAPPHONE_AP_UART);
+	omap_uart_block_sleep(MAPPHONE_AP_UART);
 #endif
 	/*
 	 * uart_block_sleep keeps uart clock active for 500 ms,

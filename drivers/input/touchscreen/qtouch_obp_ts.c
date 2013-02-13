@@ -889,10 +889,8 @@ static int qtouch_do_cmd_proc_msg(struct qtouch_ts_data *ts,
 		} else {
 			pr_info("%s:EEPROM checksum matches\n", __func__);
 		}
-#if 0
 		if (ts->family_id != QTM_OBP_TABLET_FAMILY_ID)
 			qtouch_calibrate_chip(ts);
-#endif
 		pr_info("%s: Reset done.\n", __func__);
 	}
 
@@ -1945,10 +1943,8 @@ static void qtouch_ts_work_func(struct work_struct *work)
 		goto done;
 	}
 
-#if 0
-	if ((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->cal_check_flag))
+	if ((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->family_id != 0x31) && (ts->cal_check_flag))
 		qtouch_check_chip_calibration(ts);
-#endif
 
 	obj = find_object_rid(ts, msg->report_id);
 	if (!obj) {

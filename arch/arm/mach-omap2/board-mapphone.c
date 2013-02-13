@@ -184,23 +184,13 @@ static void __init mapphone_musb_init(void)
 static bool uart_req;
 static struct wake_lock st_wk_lock;
 
-static int plat_kim_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	return 0;
-}
-
-static int plat_kim_resume(struct platform_device *pdev)
-{
-	return 0;
-}
-
 /* wl127x BT, FM, GPS connectivity chip */
 struct ti_st_plat_data wilink_pdata = {
 	.nshutdown_gpio = MAPPHONE_BT_RESET_GPIO,
 	.dev_name = WILINK_UART_DEV_NAME,
 	.flow_cntrl = 1,
-	.suspend = plat_kim_suspend,
-	.resume = plat_kim_resume,
+	.suspend = 0,
+	.resume = 0,
 };
 
 static struct platform_device wl127x_device = {
@@ -283,26 +273,6 @@ static void __init mapphone_bp_model_init(void)
              clk_enable(clkp);
              printk("sad2d_ick enabled\n");
 	}
-#if 0
-	clkp = clk_get(NULL, "l3_ick");
-		if (clkp) {
-             clk_enable(clkp);
-             printk("l3_ick enabled\n");
-	}
-
-	clkp = clk_get(NULL, "core_l3_ick");
-		if (clkp) {
-             clk_enable(clkp);
-             printk("core_l3_ick enabled\n");
-	}
-
-
-	clkp = clk_get(NULL, "hsotgusb_ick");
-		if (clkp) {
-             clk_enable(clkp);
-             printk("hsotgusb_ick enabled\n");
-	}
-#endif
 #endif
 }
 
@@ -359,7 +329,22 @@ static void __init mapphone_power_off_init(void)
 	platform_driver_register(&cpcap_charger_connected_driver);
 }
 
-
+static ssize_t mapphone_legacy_qtouch_virtual_keys_show(struct kobject *kobj,
+               struct kobj_attribute *attr, char *buf)
+{
+	/* center: x: home: 55, menu: 185, back: 305, search 425, y: 835 */
+	/* keys are specified by setting the x,y of the center, the width,
+	 * and the height, as such keycode:center_x:center_y:width:height */
+	return sprintf(buf, __stringify(EV_KEY) ":"
+		       __stringify(KEY_BACK) ":32:906:63:57"
+		       ":" __stringify(EV_KEY) ":"
+		       __stringify(KEY_MENU) ":162:906:89:57"
+		       ":" __stringify(EV_KEY) ":"
+		       __stringify(KEY_HOME) ":292:906:89:57"
+		       ":" __stringify(EV_KEY) ":"
+		       __stringify(KEY_SEARCH) ":439:906:63:57"
+		       "\n");
+}
 static void __init mapphone_voltage_init(void)
 {
 	/* cpcap is the default power supply for core and iva */
@@ -387,6 +372,7 @@ err_board_obj:
 		pr_err("failed to create board_properties\n");
 
 }
+
 
 static void __init omap_mapphone_init_early(void)
 {
@@ -508,119 +494,6 @@ static struct omap_nand_platform_data board_nand_data = {
 	.ecc_opt	= OMAP_ECC_HAMMING_CODE_HW,
 	.gpmc_irq	= INT_34XX_GPMC_IRQ,
 };
-/* 2.6.32 Mux Data:
-<4>[    0.000000] MUX: setup AF26_34XX_GPIO0 (0xfa0021e0): 0x011f -> 0x0104
-<4>[    0.000000] MUX: setup AA9_34XX_UART1_RTS (0xfa00217e): 0x0007 -> 0x0000
-<4>[    0.000000] MUX: setup W8_34XX_UART1_CTS (0xfa002180): 0x0007 -> 0x0100
-<4>[    0.000000] MUX: setup AA25_34XX_UART2_TX (0xfa002178): 0x011f -> 0x0000
-<4>[    0.000000] MUX: setup AD25_34XX_UART2_RX (0xfa00217a): 0x011f -> 0x0118
-
-<4>[    0.000000] MUX: setup AB25_34XX_UART2_RTS (0xfa002176): 0x011f -> 0x0000
-<4>[    0.000000] MUX: setup AB26_34XX_UART2_CTS (0xfa002174): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AC27_34XX_GPIO92 (0xfa002108): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup AH22_34XX_DSI_DY0 (0xfa0020de): 0x0001 -> 0x0201
-<4>[    0.000000] MUX: setup AH23_34XX_DSI_DY1 (0xfa0020e2): 0x0001 -> 0x0201
-
-<4>[    0.000000] MUX: setup AH24_34XX_DSI_DY2 (0xfa0020e6): 0x0001 -> 0x0201
-<4>[    0.000000] MUX: setup Y3_34XX_GPIO180 (0xfa0021da): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup AG25_34XX_GPIO10 (0xfa002a1a): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup B26_34XX_GPIO111 (0xfa00212e): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup Y4_34XX_GPIO181 (0xfa0021dc): 0x011f -> 0x0004
-
-<4>[    0.000000] MUX: setup AB10_34XX_GPIO28_OUT (0xfa0025f8): 0x010c -> 0x0004
-<4>[    0.000000] MUX: setup AC3_34XX_GPIO175 (0xfa0021d0): 0x011f -> 0x0104
-<4>[    0.000000] MUX: setup A24_34XX_CAM_HS (0xfa00210c): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup A23_34XX_CAM_VS (0xfa00210e): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup C25_34XX_CAM_XCLKA (0xfa002110): 0x010f -> 0x0000
-
-<4>[    0.000000] MUX: setup C27_34XX_CAM_PCLK (0xfa002112): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup C23_34XX_CAM_FLD (0xfa002114): 0x010f -> 0x0004
-<4>[    0.000000] MUX: setup AG17_34XX_CAM_D0 (0xfa002116): 0x010f -> 0x011c
-<4>[    0.000000] MUX: setup AH17_34XX_CAM_D1 (0xfa002118): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup B24_34XX_CAM_D2 (0xfa00211a): 0x010f -> 0x0100
-
-<4>[    0.000000] MUX: setup C24_34XX_CAM_D3 (0xfa00211c): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup D24_34XX_CAM_D4 (0xfa00211e): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup A25_34XX_CAM_D5 (0xfa002120): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup K28_34XX_CAM_D6 (0xfa002122): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup L28_34XX_CAM_D7 (0xfa002124): 0x010f -> 0x0100
-
-<4>[    0.000000] MUX: setup K27_34XX_CAM_D8 (0xfa002126): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup L27_34XX_CAM_D9 (0xfa002128): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup B25_34XX_CAM_D10 (0xfa00212a): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup C26_34XX_CAM_D11 (0xfa00212c): 0x010f -> 0x0100
-<4>[    0.000000] MUX: setup B23_34XX_CAM_WEN (0xfa002130): 0x010f -> 0x0002
-
-<4>[    0.000000] MUX: setup D25_34XX_CAM_STROBE (0xfa002132): 0x010f -> 0x0000
-<4>[    0.000000] MUX: setup K8_34XX_GPMC_WAIT2 (0xfa0020d0): 0x011f -> 0x0004
-<4>[    0.000000] MUX: setup H19_34XX_GPIO164_OUT (0xfa00219c): 0x011f -> 0x0004
-<4>[    0.000000] MUX: setup AG17_34XX_GPIO99 (0xfa002116): 0x011c -> 0x0104
-<4>[    0.000000] MUX: setup P21_OMAP34XX_MCBSP2_FSX (0xfa00213c): 0x010f -> 0x0108
-
-<4>[    0.000000] MUX: setup N21_OMAP34XX_MCBSP2_CLKX (0xfa00213e): 0x010f -> 0x0108
-<4>[    0.000000] MUX: setup R21_OMAP34XX_MCBSP2_DR (0xfa002140): 0x010f -> 0x0108
-<4>[    0.000000] MUX: setup M21_OMAP34XX_MCBSP2_DX (0xfa002142): 0x010f -> 0x0000
-<4>[    0.000000] MUX: setup K26_OMAP34XX_MCBSP3_FSX (0xfa002196): 0x010f -> 0x010a
-<4>[    0.000000] MUX: setup W21_OMAP34XX_MCBSP3_CLKX (0xfa002198): 0x010f -> 0x010a
-
-<4>[    0.000000] MUX: setup U21_OMAP34XX_MCBSP3_DR (0xfa002192): 0x010f -> 0x010a
-<4>[    0.000000] MUX: setup V21_OMAP34XX_MCBSP3_DX (0xfa002190): 0x010f -> 0x0002
-<4>[    0.000000] MUX: setup AE5_34XX_GPIO143 (0xfa002172): 0x010f -> 0x0104
-<4>[    0.000000] MUX: setup AF5_34XX_GPIO142 (0xfa002170): 0x0004 -> 0x0104
-<4>[    0.000000] MUX: setup AD1_3430_USB3FS_PHY_MM3_RXRCV (0xfa002186): 0x0107 -> 0x010e
-
-<4>[    0.000000] MUX: setup AD2_3430_USB3FS_PHY_MM3_TXDAT (0xfa002188): 0x0007 -> 0x010e
-<4>[    0.000000] MUX: setup AC1_3430_USB3FS_PHY_MM3_TXEN_N (0xfa00218a): 0x0007 -> 0x0006
-<4>[    0.000000] MUX: setup AE1_3430_USB3FS_PHY_MM3_TXSE0 (0xfa002184): 0x0107 -> 0x010e
-<4>[    0.000000] MUX: setup H16_34XX_SDRC_CKE0 (0xfa002262): 0x011f -> 0x0000
-<4>[    0.000000] MUX: setup H17_34XX_SDRC_CKE1 (0xfa002264): 0x011f -> 0x0000
-
-<4>[    0.000000] MUX: setup AE2_34XX_MMC2_CLK (0xfa002158): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup AG5_34XX_MMC2_CMD (0xfa00215a): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AH5_34XX_MMC2_DAT0 (0xfa00215c): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AH4_34XX_MMC2_DAT1 (0xfa00215e): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AG4_34XX_MMC2_DAT2 (0xfa002160): 0x011f -> 0x0118
-
-<4>[    0.000000] MUX: setup AF4_34XX_MMC2_DAT3 (0xfa002162): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AE22_34XX_GPIO186_OUT (0xfa0021e2): 0x010f -> 0x0004
-<4>[    0.000000] MUX: setup J8_3430_GPIO65 (0xfa0020d2): 0x011f -> 0x0104
-<4>[    0.000000] MUX: setup J25_34XX_HDQ_SIO (0xfa0021c6): 0x011f -> 0x0100
-<4>[    0.000000] MUX: setup T3_34XX_GPIO179 (0xfa0021d8): 0x010f -> 0x0004
-
-<4>[    0.000000] MUX: setup AF21_34XX_GPIO8_OUT (0xfa002a16): 0x0100 -> 0x0004
-<4>[    0.000000] MUX: setup W7_34XX_GPIO178_DOWN (0xfa0021d6): 0x010f -> 0x010c
-<4>[    0.000000] MUX: setup N28_34XX_MMC1_CLK (0xfa002144): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup M27_34XX_MMC1_CMD (0xfa002146): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup N27_34XX_MMC1_DAT0 (0xfa002148): 0x010f -> 0x0118
-
-<4>[    0.000000] MUX: setup N26_34XX_MMC1_DAT1 (0xfa00214a): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup N25_34XX_MMC1_DAT2 (0xfa00214c): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup P28_34XX_MMC1_DAT3 (0xfa00214e): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup P27_34XX_MMC1_DAT4 (0xfa002150): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup P26_34XX_MMC1_DAT5 (0xfa002152): 0x010f -> 0x0118
-
-<4>[    0.000000] MUX: setup R27_34XX_MMC1_DAT6 (0xfa002154): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup R25_34XX_MMC1_DAT7 (0xfa002156): 0x010f -> 0x0118
-<4>[    0.000000] MUX: setup AB1_34XX_GPIO176_OUT (0xfa0021d2): 0x401c -> 0x0004
-<4>[    0.000000] MUX: setup AE15_34XX_I2C2_SDA (0xfa0021c0): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AF15_34XX_I2C2_SCL (0xfa0021be): 0x011f -> 0x0118
-
-<4>[    0.000000] MUX: setup AG14_34XX_I2C3_SDA (0xfa0021c4): 0x011f -> 0x0118
-<4>[    0.000000] MUX: setup AF14_34XX_I2C3_SCL (0xfa0021c2): 0x011f -> 0x0118
-<4>[   12.993041] MUX: setup K3_34XX_GPIO43_OUT (0xfa00208c): 0x011c -> 0x0004
-<4>[   13.000213] MUX: setup V8_34XX_GPIO53_OUT (0xfa0020b2): 0x011c -> 0x0004
-<4>[   13.007476] MUX: setup U8_34XX_GPIO54_OUT (0xfa0020b4): 0x011c -> 0x0004
-
-<4>[   13.014617] MUX: setup T8_34XX_GPIO55_OUT (0xfa0020b6): 0x011c -> 0x0004
-<4>[   13.021881] MUX: setup R8_34XX_GPIO56_OUT (0xfa0020b8): 0x011c -> 0x0004
-<4>[   13.029144] MUX: setup P8_34XX_GPIO57_OUT (0xfa0020ba): 0x011c -> 0x0004
-<4>[   13.036285] MUX: setup N8_34XX_GPIO58_OUT (0xfa0020bc): 0x011c -> 0x0004
-<4>[   13.043548] MUX: setup L8_34XX_GPIO63_OUT (0xfa0020ce): 0x011c -> 0x0004
-
-<4>[   13.050689] MUX: setup AB2_34XX_GPIO177 (0xfa0021d4): 0x011f -> 0x0104
-
-*/
-
 
 #ifdef CONFIG_OMAP_MUX
 static struct omap_board_mux board_mux[] __initdata = {
@@ -673,8 +546,6 @@ static inline void omap2_ramconsole_reserve_sdram(void) {}
 #define SHOLES_IPC_USB_SUSP_GPIO	142
 
 
-#define OLD_MODEM_CONTROL
-#ifdef OLD_MODEM_CONTROL
 #include <linux/omap_mdm_ctrl.h>
 
 
@@ -719,9 +590,9 @@ static int __init sholes_omap_mdm_ctrl_init(void)
 	//omap_cfg_reg(AF3_34XX_GPIO138_OUT);
 	//omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
 
-	return platform_device_register(&omap_mdm_ctrl_platform_device);
+	
 }
-#endif
+
 
 /* for sdio wl1271 */
 static void __init config_mmc2_init(void)
@@ -748,39 +619,39 @@ static void power_modem(void)
 {
 	int ret=0, i=0;
 	ret =	gpio_request(SHOLES_BP_READY2_AP_GPIO, "BP Flash Ready");
-	printk("%d %s\n",ret,"req flash ready");
+	//printk("%d %s\n",ret,"req flash ready");
 	ret =	gpio_direction_input(SHOLES_BP_READY2_AP_GPIO);
-	printk("%d %s\n",ret,"dir flash ready");
+	//printk("%d %s\n",ret,"dir flash ready");
 	ret =	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	printk("%d %s\n",ret,"mux flash ready");
+	//printk("%d %s\n",ret,"mux flash ready");
 
 	ret =	gpio_request(SHOLES_BP_RESOUT_GPIO, "BP Reset Output");
-	printk("%d %s\n",ret,"req reset out");
+	//printk("%d %s\n",ret,"req reset out");
 	ret =	gpio_direction_input(SHOLES_BP_RESOUT_GPIO);
-	printk("%d %s\n",ret,"dir reset out");
+	//printk("%d %s\n",ret,"dir reset out");
 	ret =	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	printk("%d %s\n",ret,"mux reset out");
+	//printk("%d %s\n",ret,"mux reset out");
 
 	ret =	gpio_request(SHOLES_BP_PWRON_GPIO, "BP Power On");
-	printk("%d %s\n",ret,"req power on");
+	//printk("%d %s\n",ret,"req power on");
 	ret =	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 0);
-	printk("%d %s\n",ret,"dir power on");
+	//printk("%d %s\n",ret,"dir power on");
 	ret =	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
-	printk("%d %s\n",ret,"mux power on");
+	//printk("%d %s\n",ret,"mux power on");
 
 	ret =	gpio_request(SHOLES_AP_TO_BP_PSHOLD_GPIO, "AP to BP PS Hold");
-	printk("%d %s\n",ret,"req ps hold");
+	//printk("%d %s\n",ret,"req ps hold");
 	ret =	gpio_direction_output(SHOLES_AP_TO_BP_PSHOLD_GPIO, 0);
-	printk("%d %s\n",ret,"dir ps hold");
+	//printk("%d %s\n",ret,"dir ps hold");
 	ret =	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
-	printk("%d %s\n",ret,"mux ps hold");
+	//printk("%d %s\n",ret,"mux ps hold");
 
 	ret =	gpio_request(SHOLES_AP_TO_BP_FLASH_EN_GPIO, "BP Flash En");
-	printk("%d %s\n",ret,"req flash en");
+	//printk("%d %s\n",ret,"req flash en");
 	ret =	gpio_direction_output(SHOLES_AP_TO_BP_FLASH_EN_GPIO, 0);
-	printk("%d %s\n",ret,"dir flash en");
+	//printk("%d %s\n",ret,"dir flash en");
 	ret =	omap_mux_init_gpio(SHOLES_AP_TO_BP_FLASH_EN_GPIO,OMAP_PIN_OUTPUT);
-	printk("%d %s\n",ret,"mux flash en");
+	//printk("%d %s\n",ret,"mux flash en");
 
 
 
@@ -803,15 +674,18 @@ static void power_modem(void)
 	}
 	if (ret!=0)
 		printk ("modem power fail\n");
+	//return platform_device_register(&omap_mdm_ctrl_platform_device); //may be needed by ril, or may just be for flashing in recovery?
 
 }
-
-
 
 static void __init omap_mapphone_init(void)
 {
 
-	//omap3_mux_init(board_mux, OMAP_PACKAGE_CBB); //needed for mux funcs to work
+
+
+	/* Ensure SDRC pins are mux'd for self-refresh */
+	//omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
+	//omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
 
 	/* Configure BP wake - flash mode gpios.
 	 * both types of modem control will need this,
@@ -824,7 +698,7 @@ static void __init omap_mapphone_init(void)
 	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
 	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
 	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
-	mapphone_mdm_ctrl_init(); */
+ */
 
 	//sholes_omap_mdm_ctrl_init();
 
@@ -834,15 +708,21 @@ static void __init omap_mapphone_init(void)
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	//regulator_has_full_constraints();
+	regulator_has_full_constraints();
+
 	//omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE4 | OMAP_PIN_OFF_WAKEUPENABLE | OMAP_PIN_INPUT_PULLDOWN );
 
-	omap_serial_init();
+	omap_serial_init(NULL);
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
+
 	mapphone_i2c_init();
-	mapphone_padconf_init();
+	mapphone_padconf_init();	/*mux is done here, so anything dependant should go after*/
+
+
+	omap3_mux_init(board_mux, OMAP_PACKAGE_CBC); //needed for mux funcs to work
+
 	omap_register_ion();
 	platform_add_devices(mapphone_devices, ARRAY_SIZE(mapphone_devices));
 	mapphone_spi_init();
@@ -855,9 +735,12 @@ static void __init omap_mapphone_init(void)
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
+
 	//usb_musb_init(NULL);
 	mapphone_musb_init();
 	mapphone_usbhost_init();
+
+
 
 	config_mmc2_init(); //setup mux and loopback clock before probe
 	mapphone_hsmmc_init();
@@ -866,17 +749,24 @@ static void __init omap_mapphone_init(void)
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 	mapphone_gadget_init();
+	mapphone_mdm_ctrl_init();
 
-	/* Ensure SDRC pins are mux'd for self-refresh */
-	//omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
-	//omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
+	unsigned  long int val = 0;
+	val =	omap_readw((0x480021B8 + 2)); //i2c1_scl mux_reg
+	printk("i2c1 scl mux: %lu \n", val);
+	val = 	omap_readw(0x480021BC);		//i2c1_sda mux 
+	printk("i2c1 sda mux: %lu \n", val);
+	val = omap_readw((0x48002114 +2)); //gpio 99 
+	printk("camd0 (gpio99) mux: %lu \n", val);
+	val = omap_readw(0x4800219c); //gpio 164
+	printk("uart3_rts_sd (gpio164) mux: %lu \n", val);
 
-	power_modem();
+	power_modem(); //try power modem after usb is up
+
 }
 
 static void __init mapphone_reserve(void)
 {
-	//omap2_ramconsole_reserve_sdram();
 	omap_ram_console_init(PLAT_PHYS_OFFSET + 0x8E00000,0x200000); //Last 2Mb of ram 
 
 #ifdef CONFIG_ION_OMAP

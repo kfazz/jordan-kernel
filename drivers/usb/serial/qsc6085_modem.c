@@ -1474,15 +1474,19 @@ static struct usb_serial_driver modem_device = {
 	.release = modem_release,
 };
 
-static int modem_probe(struct platform_device *pdev)
+static void __exit modem_exit(void)
 {
-	int retval;
-	struct mdm6600_usb_platform_data *pdata = pdev->dev.platform_data;
-	if (pdata) {
-		modem_interface_number = pdata->modem_interface;
-		modem_remote_wake_gpio = pdata->remote_wake_gpio;
-	}
+	usb_deregister(&modem_driver);
+	usb_serial_deregister(&modem_device);
+	return;
+}
 
+#define SHOLES_APWAKE_TRIGGER_GPIO      141
+
+static int __init modem_init(void)
+{
+	int retval = 0;
+	modem_remote_wake_gpio = SHOLES_APWAKE_TRIGGER_GPIO;
 	retval = usb_serial_register(&modem_device);
 	if (retval)
 		return retval;
@@ -1490,29 +1494,6 @@ static int modem_probe(struct platform_device *pdev)
 	if (retval)
 		usb_serial_deregister(&modem_device);
 	return 0;
-}
-
-static int __exit modem_remove(struct platform_device *pdev)
-{
-	usb_deregister(&modem_driver);
-	usb_serial_deregister(&modem_device);
-	return 0;
-}
-
-static struct platform_driver modem_platform_driver = {
-	.driver = { .name = "qsc6085_modem", },
-	.remove = __exit_p(modem_remove),
-	.probe = modem_probe,
-};
-
-static void __exit modem_exit(void)
-{
-	platform_driver_unregister(&modem_platform_driver);
-}
-
-static int __init modem_init(void)
-{
-	return platform_driver_register(&modem_platform_driver);
 }
 
 module_init(modem_init);

@@ -62,7 +62,7 @@ static int ts27010_ldisc_open(struct tty_struct *tty)
 	INIT_WORK(&ts->recv_work, ts27010_ldisc_recv_worker);
 
 	mutex_init(&ts->send_lock);
-	spin_lock_init(&ts->recv_lock);
+	ts->recv_lock = __SPIN_LOCK_UNLOCKED(ts->recv_lock);
 
 	tty->disc_data = ts;
 
@@ -89,11 +89,6 @@ static void ts27010_ldisc_close(struct tty_struct *tty)
 {
 	struct ts27010_ldisc_data *ts = tty->disc_data;
 
-	if (!ts)
-		return;
-
-	cancel_work_sync(&ts->recv_work);
-	tty->disc_data = NULL;
 	/* TODO: goes away with clean tty interface */
 	ts27010mux_tty = NULL;
 	/* TODO: find some way of dealing with ts_data freeing safely */
@@ -153,18 +148,7 @@ static unsigned int ts27010_ldisc_poll(struct tty_struct *tty,
 				       struct file *file,
 				       poll_table *wait)
 {
-	unsigned int mask = 0;
-
-	poll_wait(file, &tty->read_wait, wait);
-	poll_wait(file, &tty->write_wait, wait);
-	if (tty_hung_up_p(file))
-		mask |= POLLHUP;
-	if (!tty_is_writelocked(tty) && tty_write_room(tty) > 0)
-		mask |= POLLOUT | POLLWRNORM;
-
-	return mask;
-
-
+	return 0;
 }
 
 /*
