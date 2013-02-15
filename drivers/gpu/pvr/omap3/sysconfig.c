@@ -41,10 +41,12 @@
 
 #include "ocpdefs.h"
 
+#if 0
 #if !defined(NO_HARDWARE) && \
      defined(SYS_USING_INTERRUPTS) && \
      defined(SGX530)
 #define SGX_OCP_REGS_ENABLED
+#endif
 #endif
 
 SYS_DATA* gpsSysData = (SYS_DATA*)IMG_NULL;
