@@ -120,7 +120,7 @@ MODULE_DEVICE_TABLE(usb, id_table);
 static unsigned int modem_interface_number;
 static int modem_remote_wake_gpio;
 
-static uint32_t cdma_modem_debug;
+static uint32_t cdma_modem_debug = 1;
 module_param_named(cdma_mdm_debug, cdma_modem_debug, uint, 0664);
 
 static struct wake_lock modem_wakelock;
@@ -1486,7 +1486,7 @@ static void __exit modem_exit(void)
 static int __init modem_init(void)
 {
 	int retval = 0;
-	modem_remote_wake_gpio = SHOLES_APWAKE_TRIGGER_GPIO;
+	//modem_remote_wake_gpio = SHOLES_APWAKE_TRIGGER_GPIO; //using bpwake instead, it wakes ttyS0 too
 	retval = usb_serial_register(&modem_device);
 	if (retval)
 		return retval;

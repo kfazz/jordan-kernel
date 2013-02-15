@@ -573,153 +573,242 @@ static int __init sholes_omap_mdm_ctrl_init(void)
 
 	//omap_cfg_reg(T4_34XX_GPIO59_DOWN);
 
-	//omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
 
 	gpio_request(SHOLES_BP_RESOUT_GPIO, "BP Reset Output");
 	gpio_direction_input(SHOLES_BP_RESOUT_GPIO);
 	//omap_cfg_reg(AE3_34XX_GPIO139_DOWN);
-	//omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
+	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
 
 	gpio_request(SHOLES_BP_PWRON_GPIO, "BP Power On");
 	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 0);
 	//omap_cfg_reg(AH3_34XX_GPIO137_OUT);
-	//omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
 
 	gpio_request(SHOLES_AP_TO_BP_PSHOLD_GPIO, "AP to BP PS Hold");
 	gpio_direction_output(SHOLES_AP_TO_BP_PSHOLD_GPIO, 0);
 	//omap_cfg_reg(AF3_34XX_GPIO138_OUT);
-	//omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
 
-	
 }
-
 
 /* for sdio wl1271 */
 static void __init config_mmc2_init(void)
 {
 	u32 val;
-
-	/* MMC2 */
-	//omap_mux_init_signal("mmc2_clk",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("mmc2_cmd",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("mmc2_dat0",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("mmc2_dat1",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("mmc2_dat2",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("mmc2_dat3",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP );
-	//omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP ); 
-
 	/* Set internal loopback clock */
 	val = omap_ctrl_readl(OMAP343X_CONTROL_DEVCONF1); 
 	omap_ctrl_writel((val | OMAP2_MMCSDIO2ADPCLKISEL),
 				OMAP343X_CONTROL_DEVCONF1);
 }
 
-static void power_modem(void)
+static int wake_gpio_strobe = SHOLES_BPWAKE_STROBE_GPIO;
+static struct wake_lock uart_lock;
+
+static void mapphone_uart_hold_wakelock(void *up, int flag);
+static void mapphone_uart_probe(struct uart_omap_port *up);
+static void mapphone_uart_remove(struct uart_omap_port *up);
+static void mapphone_uart_wake_peer(struct uart_port *up);
+
+/* Give 1s wakelock time for each port */
+static u8 wakelock_length[OMAP_MAX_HSUART_PORTS] = {2, 2, 2};
+
+static struct omap_device_pad mapphone_uart1_pads[] __initdata = {
+	{
+		.name	= "uart1_cts.uart1_cts",
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart1_rts.uart1_rts",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart1_tx.uart1_tx",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart1_rx.uart1_rx",
+		.flags	= OMAP_DEVICE_PAD_REMUX | OMAP_DEVICE_PAD_WAKEUP,
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+		.idle	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+	},
+};
+
+static struct omap_device_pad mapphone_uart2_pads[] __initdata = {
+	{
+		.name	= "uart2_cts.uart2_cts",
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+		.flags  = OMAP_DEVICE_PAD_REMUX,
+		.idle   = OMAP_WAKEUP_EN | OMAP_PIN_OFF_INPUT_PULLUP |
+			OMAP_OFFOUT_EN | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart2_rts.uart2_rts",
+		.flags  = OMAP_DEVICE_PAD_REMUX,
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+		.idle   = OMAP_PIN_OFF_INPUT_PULLUP | OMAP_MUX_MODE7,
+	},
+	{
+		.name	= "uart2_tx.uart2_tx",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart2_rx.uart2_rx",
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+	},
+};
+
+static struct omap_device_pad mapphone_uart3_pads[] __initdata = {
+	{
+		.name	= "uart3_cts_rctx.uart3_cts_rctx",
+		.enable	= OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart3_rts_sd.uart3_rts_sd",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart3_tx_irtx.uart3_tx_irtx",
+		.enable	= OMAP_PIN_OUTPUT | OMAP_MUX_MODE0,
+	},
+	{
+		.name	= "uart3_rx_irrx.uart3_rx_irrx",
+		.flags	= OMAP_DEVICE_PAD_REMUX | OMAP_DEVICE_PAD_WAKEUP,
+		.enable	= OMAP_PIN_INPUT | OMAP_MUX_MODE0,
+		.idle	= OMAP_PIN_INPUT | OMAP_MUX_MODE0,
+	},
+};
+
+static struct omap_uart_port_info omap_serial_platform_data[] = {
+	{
+		.use_dma		= 0,
+		.dma_rx_buf_size	= DEFAULT_RXDMA_BUFSIZE,
+		.dma_rx_poll_rate	= DEFAULT_RXDMA_POLLRATE,
+		.dma_rx_timeout		= DEFAULT_RXDMA_TIMEOUT,
+		.idle_timeout		= 1000, /* Reduce idle time, 5s -> 1s */
+		.flags			= 1,
+		.plat_hold_wakelock	= mapphone_uart_hold_wakelock,
+		.board_uart_probe	= mapphone_uart_probe,
+		.board_uart_remove	= mapphone_uart_remove,
+		.wake_peer	= mapphone_uart_wake_peer,
+		.is_clear_fifo	= 0,
+		.rx_safemode = 0,
+		.auto_sus_timeout	= 3000,
+		.wer	= (OMAP_UART_WER_RLSI | \
+				OMAP_UART_WER_RHRI | OMAP_UART_WER_RX | \
+				OMAP_UART_WER_DCDCD | OMAP_UART_WER_RI | \
+				OMAP_UART_WER_DSR | OMAP_UART_WER_CTS),
+	},
+	{
+		.use_dma		= 0,
+		.dma_rx_buf_size	= DEFAULT_RXDMA_BUFSIZE,
+		.dma_rx_poll_rate	= DEFAULT_RXDMA_POLLRATE,
+		.dma_rx_timeout		= DEFAULT_RXDMA_TIMEOUT,
+		.idle_timeout		= 1000, /* Reduce idle time, 5s -> 1s */
+		.flags			= 1,
+		.plat_hold_wakelock	= mapphone_uart_hold_wakelock,
+		.is_clear_fifo	= 1,
+		.rx_safemode = 0,
+		.auto_sus_timeout	= 3000,
+		.wer	= (OMAP_UART_WER_RLSI | \
+				OMAP_UART_WER_RHRI | OMAP_UART_WER_RX | \
+				OMAP_UART_WER_DCDCD | OMAP_UART_WER_RI | \
+				OMAP_UART_WER_DSR | OMAP_UART_WER_CTS),
+	},
+	{
+		.use_dma		= 0,
+		.dma_rx_buf_size	= DEFAULT_RXDMA_BUFSIZE,
+		.dma_rx_poll_rate	= DEFAULT_RXDMA_POLLRATE,
+		.dma_rx_timeout		= DEFAULT_RXDMA_TIMEOUT,
+		.idle_timeout		= 1000, /* Reduce idle time, 5s -> 1s */
+		.flags			= 1,
+		.plat_hold_wakelock	= mapphone_uart_hold_wakelock,
+		.ctsrts			= 0,
+		.is_clear_fifo	= 1,
+		.rx_safemode = 0,
+		.auto_sus_timeout	= 3000,
+		.wer	= (OMAP_UART_WER_RLSI | \
+				OMAP_UART_WER_RHRI | OMAP_UART_WER_RX | \
+				OMAP_UART_WER_DCDCD | OMAP_UART_WER_RI | \
+				OMAP_UART_WER_DSR | OMAP_UART_WER_CTS),
+	},
+};
+
+static void mapphone_uart_hold_wakelock(void *up, int flag)
 {
-	int ret=0, i=0;
-	ret =	gpio_request(SHOLES_BP_READY2_AP_GPIO, "BP Flash Ready");
-	//printk("%d %s\n",ret,"req flash ready");
-	ret =	gpio_direction_input(SHOLES_BP_READY2_AP_GPIO);
-	//printk("%d %s\n",ret,"dir flash ready");
-	ret =	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	//printk("%d %s\n",ret,"mux flash ready");
+		printk("%s\n",__func__);
+	struct uart_omap_port *up2 = (struct uart_omap_port *)up;
 
-	ret =	gpio_request(SHOLES_BP_RESOUT_GPIO, "BP Reset Output");
-	//printk("%d %s\n",ret,"req reset out");
-	ret =	gpio_direction_input(SHOLES_BP_RESOUT_GPIO);
-	//printk("%d %s\n",ret,"dir reset out");
-	ret =	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	//printk("%d %s\n",ret,"mux reset out");
+	/* Supply 500ms precision on wakelock */
+	if (wakelock_length[up2->pdev->id])
+		wake_lock_timeout(&uart_lock,
+				wakelock_length[up2->pdev->id]*HZ/2);
 
-	ret =	gpio_request(SHOLES_BP_PWRON_GPIO, "BP Power On");
-	//printk("%d %s\n",ret,"req power on");
-	ret =	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 0);
-	//printk("%d %s\n",ret,"dir power on");
-	ret =	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
-	//printk("%d %s\n",ret,"mux power on");
+	return;
+}
 
-	ret =	gpio_request(SHOLES_AP_TO_BP_PSHOLD_GPIO, "AP to BP PS Hold");
-	//printk("%d %s\n",ret,"req ps hold");
-	ret =	gpio_direction_output(SHOLES_AP_TO_BP_PSHOLD_GPIO, 0);
-	//printk("%d %s\n",ret,"dir ps hold");
-	ret =	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
-	//printk("%d %s\n",ret,"mux ps hold");
-
-	ret =	gpio_request(SHOLES_AP_TO_BP_FLASH_EN_GPIO, "BP Flash En");
-	//printk("%d %s\n",ret,"req flash en");
-	ret =	gpio_direction_output(SHOLES_AP_TO_BP_FLASH_EN_GPIO, 0);
-	//printk("%d %s\n",ret,"dir flash en");
-	ret =	omap_mux_init_gpio(SHOLES_AP_TO_BP_FLASH_EN_GPIO,OMAP_PIN_OUTPUT);
-	//printk("%d %s\n",ret,"mux flash en");
-
-
-
-	ret = gpio_direction_output(SHOLES_AP_TO_BP_FLASH_EN_GPIO, 0);
-
-	printk("powering up modem \n");
-	ret=1;
-	/* Press modem Power Button */
-	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 1);
-	mdelay(100);
-	gpio_direction_output(SHOLES_BP_PWRON_GPIO, 0);
-	/* Wait up to 5 seconds for the modem to power up */
-	for (i = 0; i < 10; i++) {
-		if (gpio_get_value(SHOLES_BP_RESOUT_GPIO)) {
-			printk("modem powered up.\n");
-			ret = 0;
-			break;
+static void mapphone_uart_probe(struct uart_omap_port *up)
+{
+	//wake_gpio_strobe = get_gpio_by_name("ipc_bpwake_trigger");
+		printk("%s\n",__func__);
+	if (wake_gpio_strobe >= 0) {
+		if (gpio_request(wake_gpio_strobe,
+				 "UART wakeup strobe")) {
+			printk(KERN_ERR "Error requesting GPIO\n");
+		} else {
+			gpio_direction_output(wake_gpio_strobe, 0);
 		}
-		mdelay(500);
 	}
-	if (ret!=0)
-		printk ("modem power fail\n");
-	//return platform_device_register(&omap_mdm_ctrl_platform_device); //may be needed by ril, or may just be for flashing in recovery?
+}
 
+static void mapphone_uart_remove(struct uart_omap_port *up)
+{
+		printk("%s\n",__func__);
+	if (wake_gpio_strobe >= 0)
+		gpio_free(wake_gpio_strobe);
+}
+
+static void mapphone_uart_wake_peer(struct uart_port *up)
+{
+	printk("%s\n",__func__);
+	if (wake_gpio_strobe >= 0) {
+		gpio_direction_output(wake_gpio_strobe, 1);
+		udelay(5);
+		gpio_direction_output(wake_gpio_strobe, 0);
+		udelay(5);
+	}
+}
+
+void mapphone_serial_init(void)
+{
+	wake_lock_init(&uart_lock, WAKE_LOCK_SUSPEND, "uart_wake_lock");
+	omap_serial_init_port_pads(0, mapphone_uart1_pads,
+		ARRAY_SIZE(mapphone_uart1_pads), &omap_serial_platform_data[0]);
+	omap_serial_init_port_pads(1, mapphone_uart2_pads,
+		ARRAY_SIZE(mapphone_uart2_pads), &omap_serial_platform_data[1]);
+	omap_serial_init_port_pads(2, mapphone_uart3_pads,
+		ARRAY_SIZE(mapphone_uart3_pads), &omap_serial_platform_data[2]);
 }
 
 static void __init omap_mapphone_init(void)
 {
-
-
-	/* Ensure SDRC pins are mux'd for self-refresh */
-	//omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
-	//omap_mux_init_signal("sdrc_cke1", OMAP_PIN_OUTPUT);
-
-	/* Configure BP wake - flash mode gpios.
-	 * both types of modem control will need this,
-	 * otherwise the modem always powers up in flash mode.
-	 */
-	/*
-	omap_mux_init_gpio(SHOLES_BPWAKE_STROBE_GPIO,OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	omap_mux_init_gpio(SHOLES_BP_READY2_AP_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	omap_mux_init_gpio(SHOLES_BP_RESOUT_GPIO,OMAP_PIN_INPUT_PULLDOWN);
-	omap_mux_init_gpio(SHOLES_BP_PWRON_GPIO,OMAP_PIN_OUTPUT);
-	omap_mux_init_gpio(SHOLES_AP_TO_BP_PSHOLD_GPIO,OMAP_PIN_OUTPUT);
- */
-
-	//sholes_omap_mdm_ctrl_init();
-
-
 	mapphone_power_off_init();
 	/*
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
-	//regulator_has_full_constraints();
-
-	//omap_mux_init_signal("sys_nirq",OMAP_MUX_MODE4 | OMAP_PIN_OFF_WAKEUPENABLE | OMAP_PIN_INPUT_PULLDOWN );
-
-	omap_serial_init(NULL);
+	regulator_has_full_constraints();
+	mapphone_mdm_ctrl_init();
+	mapphone_serial_init();
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
 
 	mapphone_i2c_init();
 	mapphone_padconf_init();	/*mux is done here, so anything dependant should go after*/
-	omap3_mux_init(board_mux, OMAP_PACKAGE_CBC); //needed for mux funcs to work
-	power_modem(); //try power modem after mux is done
+
+
+	//sholes_omap_mdm_ctrl_init(); //might need for old ril
 
 	omap_register_ion();
 	platform_add_devices(mapphone_devices, ARRAY_SIZE(mapphone_devices));
@@ -732,11 +821,8 @@ static void __init omap_mapphone_init(void)
 	mapphone_panel_init();
 	mapphone_als_init();
 	omap_hdq_init();
-
-	//usb_musb_init(NULL);
 	mapphone_musb_init();
 	mapphone_usbhost_init();
-
 	config_mmc2_init(); //setup mux and loopback clock before probe
 	mapphone_hsmmc_init();
 	gpmc_nand_init(&board_nand_data);
@@ -744,20 +830,6 @@ static void __init omap_mapphone_init(void)
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 	mapphone_gadget_init();
-	mapphone_mdm_ctrl_init();
-
-	unsigned  long int val = 0;
-	val =	omap_readw((0x480021B8 + 2)); //i2c1_scl mux_reg
-	printk("i2c1 scl mux: %lu \n", val);
-	val = 	omap_readw(0x480021BC);		//i2c1_sda mux 
-	printk("i2c1 sda mux: %lu \n", val);
-	val = omap_readw((0x48002114 +2)); //gpio 99 
-	printk("camd0 (gpio99) mux: %lu \n", val);
-	val = omap_readw(0x4800219c); //gpio 164
-	printk("uart3_rts_sd (gpio164) mux: %lu \n", val);
-
-
-
 }
 
 static void __init mapphone_reserve(void)

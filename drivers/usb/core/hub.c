@@ -31,6 +31,7 @@
 #include "usb.h"
 
 /* if we are in debug mode, always announce new devices */
+#define DEBUG 1
 #ifdef DEBUG
 #ifndef CONFIG_USB_ANNOUNCE_NEW_DEVICES
 #define CONFIG_USB_ANNOUNCE_NEW_DEVICES
@@ -679,7 +680,6 @@ int usb_remove_device(struct usb_device *udev)
 		return -EINVAL;
 	hub = hdev_to_hub(udev->parent);
 	intf = to_usb_interface(hub->intfdev);
-	dev_err(&udev->dev, "USB Device Removed - initiate disconnect\n");
 
 	usb_autopm_get_interface(intf);
 	set_bit(udev->portnum, hub->removed_bits);
@@ -794,6 +794,8 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 			 * Do not disable USB3 protocol ports.
 			 */
 			if (!hub_is_superspeed(hdev)) {
+
+			printk("!hub_is_superspeed\n");
 				clear_port_feature(hdev, port1,
 						   USB_PORT_FEAT_ENABLE);
 				portstatus &= ~USB_PORT_STAT_ENABLE;
@@ -806,16 +808,19 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 		/* Clear status-change flags; we'll debounce later */
 		if (portchange & USB_PORT_STAT_C_CONNECTION) {
 			need_debounce_delay = true;
+			printk("USB_PORT_STAT_C_CONNECTION\n");
 			clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_CONNECTION);
 		}
 		if (portchange & USB_PORT_STAT_C_ENABLE) {
 			need_debounce_delay = true;
+			printk("USB_PORT_STAT_C_ENABLE\n");
 			clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_ENABLE);
 		}
 		if (portchange & USB_PORT_STAT_C_LINK_STATE) {
 			need_debounce_delay = true;
+			printk("USB_PORT_STAT_C_LINK_STATE\n");
 			clear_port_feature(hub->hdev, port1,
 					USB_PORT_FEAT_C_PORT_LINK_STATE);
 		}
@@ -824,8 +829,10 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 		 * physical disconnect or the connect status changes.
 		 */
 		if (!(portstatus & USB_PORT_STAT_CONNECTION) ||
-				(portchange & USB_PORT_STAT_C_CONNECTION))
+				(portchange & USB_PORT_STAT_C_CONNECTION)) {
+			printk("forget about removed device\n");
 			clear_bit(port1, hub->removed_bits);
+		}
 
 		if (!udev || udev->state == USB_STATE_NOTATTACHED) {
 			/* Tell khubd to disconnect the device or
@@ -1903,9 +1910,7 @@ int usb_new_device(struct usb_device *udev)
 	/* Tell the world! */
 	announce_device(udev);
 
-#ifndef CONFIG_USB_DISABLE_ASYNC_SUSPEND
 	device_enable_async_suspend(&udev->dev);
-#endif
 	/* Register the device.  The device driver is responsible
 	 * for configuring the device and invoking the add-device
 	 * notifier chain (used by usbfs and possibly others).
@@ -2390,8 +2395,6 @@ int usb_port_suspend(struct usb_device *udev, pm_message_t msg)
 	return status;
 }
 
-#define MAX_RESET_RESUME	3 /* number of attempts to reset resume */
-
 /*
  * If the USB "suspend" state is in use (rather than "global suspend"),
  * many devices will be individually taken out of suspend state using
@@ -2407,7 +2410,6 @@ static int finish_port_resume(struct usb_device *udev)
 {
 	int	status = 0;
 	u16	devstatus;
-	unsigned reset_count = 0;
 
 	/* caller owns the udev device lock */
 	dev_dbg(&udev->dev, "%s\n",
@@ -2443,27 +2445,16 @@ static int finish_port_resume(struct usb_device *udev)
 
 		/* If a normal resume failed, try doing a reset-resume */
 		if (status && !udev->reset_resume && udev->persist_enabled &&
-				!(udev->quirks & USB_QUIRK_NO_RESET_RESUME) &&
-				(reset_count < MAX_RESET_RESUME)) {
-			dev_err(&udev->dev, "getstatus failed with %d,"
-				"retry with reset-resume\n", status);
+				!(udev->quirks & USB_QUIRK_NO_RESET_RESUME)) {
+			dev_dbg(&udev->dev, "retry with reset-resume\n");
 			udev->reset_resume = 1;
-			reset_count++;
 			goto retry_reset_resume;
 		}
-	} else if ((udev->quirks & USB_QUIRK_RETRY_RESET_RESUME) &&
-			(reset_count < MAX_RESET_RESUME) &&
-			(udev->persist_enabled)) {
-			dev_err(&udev->dev, "Reset failed, retry reset-resume\n");
-			udev->reset_resume = 1;
-			reset_count++;
-			goto retry_reset_resume;
 	}
 
 	if (status) {
-		dev_err(&udev->dev, "gone after usb resume? status %d,"
-				"reset_count %d\n",
-				status, reset_count);
+		dev_dbg(&udev->dev, "gone after usb resume? status %d\n",
+				status);
 	} else if (udev->actconfig) {
 		le16_to_cpus(&devstatus);
 		if (devstatus & (1 << USB_DEVICE_REMOTE_WAKEUP)) {
@@ -2581,8 +2572,7 @@ int usb_port_resume(struct usb_device *udev, pm_message_t msg)
 	if (status == 0)
 		status = finish_port_resume(udev);
 	if (status < 0) {
-		dev_err(&udev->dev, "can't resume, status %d"
-			" Initiate Logical Disconnect\n", status);
+		dev_dbg(&udev->dev, "can't resume, status %d\n", status);
 		hub_port_logical_disconnect(hub, port1);
 	}
 	return status;
@@ -3173,7 +3163,6 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 		"port %d, status %04x, change %04x, %s\n",
 		port1, portstatus, portchange, portspeed(hub, portstatus));
 
-	hdev->bus->connection_change = 1;
 	if (hub->has_indicators) {
 		set_port_led(hub, port1, HUB_LED_AUTO);
 		hub->indicator[port1-1] = INDICATOR_AUTO;
@@ -3215,11 +3204,8 @@ static void hub_port_connect_change(struct usb_hub *hub, int port1,
 	}
 
 	/* Disconnect any existing devices under this port */
-	if (udev) {
+	if (udev)
 		usb_disconnect(&hdev->children[port1-1]);
-		if (hcd->driver->update_device_disconnect)
-			hcd->driver->update_device_disconnect(hcd, port1);
-	}
 	clear_bit(port1, hub->change_bits);
 
 	/* We can forget about a "removed" device when there's a physical
@@ -3946,11 +3932,6 @@ done:
 	return 0;
  
 re_enumerate:
-	if ((udev->quirks & USB_QUIRK_RETRY_RESET_RESUME) &&
-		udev->reset_resume)
-		return -ENODEV;
-
-	dev_err(&udev->dev, "Reset Failed - Initiate Logical Disconnect");
 	hub_port_logical_disconnect(parent_hub, port1);
 	return -ENODEV;
 }

@@ -77,7 +77,7 @@
 #define TS0710MUX_MINOR_START 0
 
 /* 2500ms, for BP UART hardware flow control AP UART  */
-#define TS0710MUX_TIME_OUT 250
+#define TS0710MUX_TIME_OUT 2500
 
 #define CRC_VALID 0xcf
 
@@ -146,7 +146,7 @@ static struct ts0710_con ts0710_connection;
 
 #ifdef DEBUG
 
-static int debug = 0;
+static int debug = 2;
 
 module_param_named(debug_level, debug, int, S_IRUGO | S_IWUSR);
 
