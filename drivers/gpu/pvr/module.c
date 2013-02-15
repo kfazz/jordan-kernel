@@ -281,7 +281,7 @@ static int __devinit PVRSRVDriverProbe(LDM_DEV *pDevice, const struct pci_device
 					1 << ION_HEAP_TYPE_CARVEOUT |
 					1 << OMAP_ION_HEAP_TYPE_TILER,
 					"pvr");
-	} else if (cpu_is_omap3630()) {
+	} else if (cpu_is_omap3xxx()) {
 		gpsIONClient = ion_client_create(omap_ion_device,
 					1 << ION_HEAP_TYPE_CARVEOUT,
 					"pvr");
