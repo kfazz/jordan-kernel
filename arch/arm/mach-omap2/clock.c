@@ -457,8 +457,8 @@ void omap2_clk_disable_unused(struct clk *clk)
 #ifdef CONFIG_EMU_UART_DEBUG
 	if(clk->name == "uart3_ick" || clk->name == "uart3_fck") {
 	   return;
-#endif
 	}
+#endif
 	if (cpu_is_omap34xx()) {
 		omap2_clk_enable(clk);
 		omap2_clk_disable(clk);
