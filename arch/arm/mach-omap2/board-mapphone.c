@@ -188,6 +188,7 @@ static struct wake_lock st_wk_lock;
 struct ti_st_plat_data wilink_pdata = {
 	.nshutdown_gpio = MAPPHONE_BT_RESET_GPIO,
 	.dev_name = WILINK_UART_DEV_NAME,
+	.baud_rate = 3686400,
 	.flow_cntrl = 1,
 	.suspend = 0,
 	.resume = 0,
