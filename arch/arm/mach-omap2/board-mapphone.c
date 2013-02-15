@@ -658,6 +658,7 @@ static struct omap_device_pad mapphone_uart2_pads[] __initdata = {
 	},
 };
 
+#ifdef CONFIG_EMU_UART_DEBUG
 static struct omap_device_pad mapphone_uart3_pads[] __initdata = {
 	{
 		.name	= "uart3_cts_rctx.uart3_cts_rctx",
@@ -678,6 +679,7 @@ static struct omap_device_pad mapphone_uart3_pads[] __initdata = {
 		.idle	= OMAP_PIN_INPUT | OMAP_MUX_MODE0,
 	},
 };
+#endif
 
 static struct omap_uart_port_info omap_serial_platform_data[] = {
 	{
@@ -691,6 +693,7 @@ static struct omap_uart_port_info omap_serial_platform_data[] = {
 		.board_uart_probe	= mapphone_uart_probe,
 		.board_uart_remove	= mapphone_uart_remove,
 		.wake_peer	= mapphone_uart_wake_peer,
+		.ctsrts			= 0,
 		.is_clear_fifo	= 0,
 		.rx_safemode = 0,
 		.auto_sus_timeout	= 3000,
@@ -707,6 +710,7 @@ static struct omap_uart_port_info omap_serial_platform_data[] = {
 		.idle_timeout		= 1000, /* Reduce idle time, 5s -> 1s */
 		.flags			= 1,
 		.plat_hold_wakelock	= mapphone_uart_hold_wakelock,
+		.ctsrts			= 0,
 		.is_clear_fifo	= 1,
 		.rx_safemode = 0,
 		.auto_sus_timeout	= 3000,
@@ -736,7 +740,6 @@ static struct omap_uart_port_info omap_serial_platform_data[] = {
 
 static void mapphone_uart_hold_wakelock(void *up, int flag)
 {
-		printk("%s\n",__func__);
 	struct uart_omap_port *up2 = (struct uart_omap_port *)up;
 
 	/* Supply 500ms precision on wakelock */
@@ -749,8 +752,6 @@ static void mapphone_uart_hold_wakelock(void *up, int flag)
 
 static void mapphone_uart_probe(struct uart_omap_port *up)
 {
-	//wake_gpio_strobe = get_gpio_by_name("ipc_bpwake_trigger");
-		printk("%s\n",__func__);
 	if (wake_gpio_strobe >= 0) {
 		if (gpio_request(wake_gpio_strobe,
 				 "UART wakeup strobe")) {
@@ -763,14 +764,12 @@ static void mapphone_uart_probe(struct uart_omap_port *up)
 
 static void mapphone_uart_remove(struct uart_omap_port *up)
 {
-		printk("%s\n",__func__);
 	if (wake_gpio_strobe >= 0)
 		gpio_free(wake_gpio_strobe);
 }
 
 static void mapphone_uart_wake_peer(struct uart_port *up)
 {
-	printk("%s\n",__func__);
 	if (wake_gpio_strobe >= 0) {
 		gpio_direction_output(wake_gpio_strobe, 1);
 		udelay(5);
@@ -786,8 +785,10 @@ void mapphone_serial_init(void)
 		ARRAY_SIZE(mapphone_uart1_pads), &omap_serial_platform_data[0]);
 	omap_serial_init_port_pads(1, mapphone_uart2_pads,
 		ARRAY_SIZE(mapphone_uart2_pads), &omap_serial_platform_data[1]);
+#ifdef CONFIG_EMU_UART_DEBUG
 	omap_serial_init_port_pads(2, mapphone_uart3_pads,
 		ARRAY_SIZE(mapphone_uart3_pads), &omap_serial_platform_data[2]);
+#endif
 }
 
 static void __init omap_mapphone_init(void)
