@@ -31,7 +31,6 @@ static struct wake_lock baseband_wakeup_wakelock;
 static irqreturn_t mapphone_bpwake_irqhandler(int irq, void *unused)
 {
 #ifdef CONFIG_PM
-	printk("%s: blocking uart 1 sleep\n",__FUNCTION__);
 	omap_uart_block_sleep(MAPPHONE_AP_UART);
 #endif
 	/*
