@@ -146,7 +146,7 @@ static struct ts0710_con ts0710_connection;
 
 #ifdef DEBUG
 
-static int debug = 2;
+static int debug = 0;
 
 module_param_named(debug_level, debug, int, S_IRUGO | S_IWUSR);
 
