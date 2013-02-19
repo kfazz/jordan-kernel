@@ -1114,22 +1114,6 @@ void dsi_runtime_put(struct platform_device *dsidev)
 	mutex_unlock(&dsi->runtime_lock);
 }
 
-#ifdef CONFIG_PANEL_MAPPHONE
-int dsi_from_dss_runtime_get(struct omap_dss_device *dssdev)
-{
-	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
-
-	return dsi_runtime_get(dsidev);
-}
-
-void dsi_from_dss_runtime_put(struct omap_dss_device *dssdev)
-{
-	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
-
-	dsi_runtime_put(dsidev);
-}
-#endif
-
 /* source clock for DSI PLL. this could also be PCLKFREE */
 static inline void dsi_enable_pll_clock(struct platform_device *dsidev,
 		bool enable)
@@ -2251,6 +2235,7 @@ static void dsi_cio_timings(struct platform_device *dsidev)
 	/* min 40ns + 4*UI	max 85ns + 6*UI */
 	ths_prepare = ns2ddr(dsidev, 70) + 2;
 
+	/* min 145ns + 10*UI */
 	ths_prepare_ths_zero = ns2ddr(dsidev, 175) + 2;
 
 	/* min max(8*UI, 60ns+4*UI) */
@@ -2752,9 +2737,7 @@ static int dsi_sync_vc(struct platform_device *dsidev, int channel)
 
 	WARN_ON(!dsi_bus_is_locked(dsidev));
 
-#ifndef CONFIG_MACH_OMAP_MAPPHONE_DEFY
 	WARN_ON(in_interrupt());
-#endif
 
 	if (!dsi_vc_is_enabled(dsidev, channel))
 		return 0;
@@ -3016,13 +2999,8 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 {
 	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
 	DECLARE_COMPLETION_ONSTACK(completion);
-	int r = 0;
+	int r = 0, i = 0;
 	u32 err;
-
-	r = dsi_register_isr_vc(dsidev, channel, dsi_completion_handler,
-			&completion, DSI_VC_IRQ_BTA);
-	if (r)
-		goto err0;
 
 	r = dsi_register_isr(dsidev, dsi_completion_handler, &completion,
 			DSI_IRQ_ERROR_MASK);
@@ -3031,29 +3009,32 @@ int dsi_vc_send_bta_sync(struct omap_dss_device *dssdev, int channel)
 
 	r = dsi_vc_send_bta(dsidev, channel);
 	if (r)
-		goto err2;
+		goto err1;
 
-	if (wait_for_completion_timeout(&completion,
-				msecs_to_jiffies(500)) == 0) {
-		DSSERR("Failed to receive BTA\n");
-		r = -EIO;
-		goto err2;
+	/* wait for BTA ACK */
+	while (i < 500) {
+		if (REG_GET(dsidev, DSI_VC_IRQSTATUS(channel), 5, 5)) {
+			DSSDBG("BTA recieved\n");
+			REG_FLD_MOD(dsidev, DSI_VC_IRQSTATUS(channel), 1, 5, 5);
+			break;
+		}
+		i++;
+		mdelay(1);
 	}
+
+	if (i >= 500)
+		DSSERR("sending BTA failed\n");
 
 	err = dsi_get_errors(dsidev);
 	if (err) {
 		DSSERR("Error while sending BTA: %x\n", err);
 		r = -EIO;
-		goto err2;
 	}
-err2:
+
+err1:
 	dsi_unregister_isr(dsidev, dsi_completion_handler, &completion,
 			DSI_IRQ_ERROR_MASK);
-err1:
-	dsi_unregister_isr_vc(dsidev, channel, dsi_completion_handler,
-			&completion, DSI_VC_IRQ_BTA);
-err0:
-	return r;
+	return 0;
 }
 EXPORT_SYMBOL(dsi_vc_send_bta_sync);
 
@@ -3204,44 +3185,6 @@ int dsi_vc_send_null(struct omap_dss_device *dssdev, int channel)
 		4, 0);
 }
 EXPORT_SYMBOL(dsi_vc_send_null);
-
-#ifdef CONFIG_PANEL_MAPPHONE
-int dsi_vc_write_nosync(struct omap_dss_device *dssdev, int channel, u8 data_type,
-			u8 *data, int len)
-{
-	struct platform_device *dsidev = dsi_get_dsidev_from_dssdev(dssdev);
-	int r;
-
-	BUG_ON(len == 0);
-
-	if (len == 1)
-		r = dsi_vc_send_short(dsidev, channel, data_type, data[0], 0);
-	else if (len == 2)
-		r = dsi_vc_send_short(dsidev, channel, data_type,
-				data[0] | (data[1] << 8), 0);
-	else
-		r = dsi_vc_send_long(dsidev, channel, data_type, data, len, 0);
-
-	return r;
-}
-EXPORT_SYMBOL(dsi_vc_write_nosync);
-
-int dsi_vc_write(struct omap_dss_device *dssdev, int channel, u8 data_type,
-		 u8 *data, int len)
-{
-	int r;
-
-	r = dsi_vc_write_nosync(dssdev, channel, data_type, data, len);
-	if (r)
-		return r;
-
-	r = dsi_vc_send_bta_sync(dssdev, channel);
-
-	return r;
-
-}
-EXPORT_SYMBOL(dsi_vc_write);
-#endif
 
 int dsi_vc_dcs_write_nosync(struct omap_dss_device *dssdev, int channel,
 		u8 *data, int len)
@@ -4780,15 +4723,8 @@ int omapdss_dsi_display_enable(struct omap_dss_device *dssdev)
 		dsi_enable_pll_clock(dsidev, 1);
 
 	/* Soft reset */
-#ifndef CONFIG_FB_OMAP_BOOTLOADER_INIT
 	REG_FLD_MOD(dsidev, DSI_SYSCONFIG, 1, 1, 1);
 	_dsi_wait_reset(dsidev);
-#else
-	msleep(1); /* short delay for clk to be stable */
-	if (!dssdev->skip_init)
-		dsi_vc_enable(dsidev, 0, 0);
-	dsi_vc_enable(dsidev, 1, 0);
-#endif
 
 
 	_dsi_initialize_irq(dsidev);

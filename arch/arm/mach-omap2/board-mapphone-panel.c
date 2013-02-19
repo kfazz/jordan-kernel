@@ -84,12 +84,14 @@ static void mapphone_panel_disable(struct omap_dss_device *dssdev);
 static struct omap_video_timings mapphone_panel_timings = {
 	.x_res          = 480,
 	.y_res          = 854,
-	/*.pixel_clock  = 25000,*/
-	.hfp            = 0,
+	.pixel_clock  = 25000,
+	.hfp            = 44,
 	.hsw            = 2,
-	.hbp            = 2,
-	.vfp            = 0,
+	.hbp            = 38,
+	.vfp            = 1,
 	.vsw            = 1,
+	.vbp            = 1,
+
 };
 
 static struct mapphone_dsi_panel_data mapphone_panel_data = {
@@ -108,11 +110,11 @@ static struct mapphone_dsi_panel_data mapphone_panel_data = {
 	.use_esd_check		= true,
 	.set_backlight		= NULL,
 	.te_support		= true,
-#ifdef CONFIG_MACH_OMAP_MAPPHONE_DEFY
-	.te_scan_line		= 0x300,
-#else
+//#ifdef CONFIG_MACH_OMAP_MAPPHONE_DEFY
+//	.te_scan_line		= 0x300,
+//#else
 	.te_scan_line		= 300,
-#endif
+//#endif
 	.te_type		= OMAP_DSI_TE_MIPI_PHY,
 	.cmoste_wr		= false,
 	.ftr_support.som	= false,
@@ -774,6 +776,7 @@ static int mapphone_dt_get_panel_info(void)
 		if (panel_prop != NULL)
 			mapphone_panel_timings.y_res = *(u16 *)panel_prop;
 
+#if 0
 		panel_prop = of_get_property(panel_node,
 						"dispc_timing_hfp", NULL);
 		if (panel_prop != NULL)
@@ -808,6 +811,7 @@ static int mapphone_dt_get_panel_info(void)
 						"dispc_pixel_clk", NULL);
 		if (panel_prop != NULL)
 			mapphone_panel_timings.pixel_clock = *(u32 *)panel_prop;
+#endif
 
 		panel_prop = of_get_property(panel_node,
 						"phy_width_mm", NULL);
