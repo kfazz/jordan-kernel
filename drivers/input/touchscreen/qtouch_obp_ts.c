@@ -889,13 +889,13 @@ static int qtouch_do_cmd_proc_msg(struct qtouch_ts_data *ts,
 		} else {
 			pr_info("%s:EEPROM checksum matches\n", __func__);
 		}
-		if (ts->family_id != QTM_OBP_TABLET_FAMILY_ID) // should we skip this for AtMega324p too?
+		if ((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->family_id != 0x31)) // should we skip this for AtMega324p too?
 			qtouch_calibrate_chip(ts);
 		pr_info("%s: Reset done.\n", __func__);
 	}
 
 	if (msg->status & QTM_CMD_PROC_STATUS_CAL) {
-		if (ts->family_id != QTM_OBP_TABLET_FAMILY_ID || ts->family_id != 0x31) {
+		if ((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->family_id != 0x31)) {
 			ts->cal_check_flag = 1;
 			ts->cal_timer = 0;
 		}
@@ -1943,7 +1943,7 @@ static void qtouch_ts_work_func(struct work_struct *work)
 		goto done;
 	}
 
-	if ((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->family_id != 0x31) && (ts->cal_check_flag))
+	if (((ts->family_id != QTM_OBP_TABLET_FAMILY_ID) && (ts->family_id != 0x31)) && (ts->cal_check_flag))
 		qtouch_check_chip_calibration(ts);
 
 	obj = find_object_rid(ts, msg->report_id);
