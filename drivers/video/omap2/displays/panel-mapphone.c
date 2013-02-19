@@ -68,9 +68,9 @@ static unsigned int panel_debug;
 #define EDISCO_CMD_MCS_ON		0x3
 #define EDISCO_CMD_MCS_OFF		0x0
 
-#define EDISCO_LONG_WRITE		0x29
-#define EDISCO_SHORT_WRITE_1		0x23
-#define EDISCO_SHORT_WRITE_0		0x13
+#define EDISCO_LONG_WRITE		0x39 //29
+#define EDISCO_SHORT_WRITE_1		0x15 //23
+#define EDISCO_SHORT_WRITE_0		0x05 //13
 
 #define DCS_CMD_RETRY_MAX 10
 
