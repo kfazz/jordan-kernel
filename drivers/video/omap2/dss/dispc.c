@@ -536,10 +536,8 @@ int dispc_runtime_get(void)
 		 * The Workaround suggested by Hardware team is to keep the L3_1
 		 * and L3_2 CD in NO_SLEEP mode, when DSS is active.
 		 */
-		if(cpu_is_omap44xx()) {
-			clkdm_deny_idle(l3_1_clkdm);
-			clkdm_deny_idle(l3_2_clkdm);
-		}
+		clkdm_deny_idle(l3_1_clkdm);
+		clkdm_deny_idle(l3_2_clkdm);
 
 		r = dss_runtime_get();
 		if (r)
