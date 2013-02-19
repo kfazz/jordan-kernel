@@ -257,6 +257,7 @@ struct mapphone_data {
 
 	bool cabc_broken;
 	unsigned cabc_mode;
+	bool framedone_timeout;
 
 	bool intro_printed;
 	/* cmd mode force update flag:
@@ -468,6 +469,24 @@ static void mapphone_framedone_cb(int err, void *data)
 {
 	struct omap_dss_device *dssdev = data;
 	struct mapphone_data *mp_data = dev_get_drvdata(&dssdev->dev);
+
+	/*
+	 * assert framedone timeout flag before
+	 * unlocking the bus
+	 */
+	if (err && !dsi_bus_was_unlocked(dssdev))
+		mp_data->framedone_timeout = true;
+
+	/*
+	 * reset framedone timeout flag upon next
+	 * framedone. Ensure no double un-lock from
+	 * the erroneous framedone callback.
+	 */
+	if (mp_data->framedone_timeout && !err) {
+		mp_data->framedone_timeout = false;
+		if (dsi_bus_was_unlocked(dssdev))
+			return;
+	}
 
 	DBG("%s()\n", __func__);
 
