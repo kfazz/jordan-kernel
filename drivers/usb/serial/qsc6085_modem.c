@@ -1486,7 +1486,7 @@ static void __exit modem_exit(void)
 static int __init modem_init(void)
 {
 	int retval = 0;
-	//modem_remote_wake_gpio = SHOLES_APWAKE_TRIGGER_GPIO; //using bpwake instead, it wakes ttyS0 too
+	modem_remote_wake_gpio = -1; // SHOLES_APWAKE_TRIGGER_GPIO; //using bpwake instead, it wakes ttyS0 too
 	retval = usb_serial_register(&modem_device);
 	if (retval)
 		return retval;
