@@ -384,8 +384,7 @@ static int lis331dlh_misc_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int lis331dlh_misc_ioctl(struct inode *inode, struct file *file,
-				unsigned int cmd, unsigned long arg)
+static long lis331dlh_misc_ioctl( struct file *file, unsigned int cmd, unsigned long arg)
 {
 	void __user *argp = (void __user *)arg;
 	u8 buf[4];
@@ -454,7 +453,7 @@ static int lis331dlh_misc_ioctl(struct inode *inode, struct file *file,
 static const struct file_operations lis331dlh_misc_fops = {
 	.owner = THIS_MODULE,
 	.open = lis331dlh_misc_open,
-	.compat_ioctl = lis331dlh_misc_ioctl,
+	.unlocked_ioctl = lis331dlh_misc_ioctl,
 };
 
 static struct miscdevice lis331dlh_misc_device = {
