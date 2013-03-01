@@ -951,7 +951,7 @@ static int __init omap2_init_devices(void)
 	omap_init_aess();
 	omap_init_abe();
 	omap_init_audio();
-	omap_init_camera();
+	omap_init_camera();//kiwf if we move to never v4l setup
 	omap_init_mbox();
 	omap_init_mcasp();
 	omap_init_mcspi();

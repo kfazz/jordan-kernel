@@ -124,6 +124,8 @@ config VIDEO_IR_I2C
 
 	  In doubt, say Y.
 
+source "drivers/media/video/hp3a/Kconfig"
+
 #
 # Encoder / Decoder module configuration
 #
@@ -458,6 +460,31 @@ config VIDEO_AK881X
 	  Video output driver for AKM AK8813 and AK8814 TV encoders
 
 comment "Camera sensor devices"
+
+config VIDEO_APTINA_PLL
+	tristate
+
+config VIDEO_OMAP3_HPLENS
+	tristate "HP generic lens driver"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 generic lens driver.
+
+config VIDEO_MT9P012
+	tristate "Micron MT9P012 raw sensor driver (5MP)"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Micron
+	  MT9P012 camera.  It is currently working with the TI OMAP3
+	  camera controller.
+
+config VIDEO_MT9P031
+	tristate "Micron MT9P031 raw sensor driver (5MP)"
+	depends on I2C && VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the Micron
+	  MT9P031 camera.  It is currently working with the TI OMAP3
+	  camera controller.
 
 config VIDEO_OV7670
 	tristate "OmniVision OV7670 sensor support"

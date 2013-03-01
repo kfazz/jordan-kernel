@@ -48,7 +48,11 @@ easier to hack this up for testing than adding the gpios to DT*/
 #define PDESC_ID_SHIFT	16	/* add new flags before this one */
 #define GPIO_FLAGS_MASK		((1 << PDESC_ID_SHIFT) - 1)
 
+#ifndef HACK
 static int mapphone_bpwake_gpio = -1;
+#else
+static int mapphone_bpwake_gpio = 141;
+#endif
 static struct platform_device mapphone_bpwake_device = {
 	.name		= "mapphone_bpwake",
 	.id		 = -1,
@@ -857,9 +861,8 @@ static int mapphone_ste_m570_mdm_ctrl_init(void)
 static inline void mapphone_bpwake_init(void)
 {
 #ifdef HACK
-mapphone_bpwake_gpio = 141;
 	if (mapphone_bpwake_gpio >= 0) {
-		mdm6600_ctrl_platform_data.mapphone_bpwake_device =
+		qsc6085_ctrl_platform_data.mapphone_bpwake_device =
 			&mapphone_bpwake_device;
 		platform_device_register(&mapphone_bpwake_device);
 	}

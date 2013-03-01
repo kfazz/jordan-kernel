@@ -30,9 +30,9 @@
  * messages
  */
 
-/*
+
   #define OMAP_ISPCTRL_DEBUG
-  #define OMAP_ISPCCDC_DEBUG
+/*  #define OMAP_ISPCCDC_DEBUG
   #define OMAP_ISPPREV_DEBUG
   #define OMAP_ISPRESZ_DEBUG
   #define OMAP_ISPMMU_DEBUG

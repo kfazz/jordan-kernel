@@ -64,6 +64,7 @@ struct qsc6085_info {
 	enum qsc6085_status status;
 
 	struct radio_dev rdev;
+	struct qsc6085_ctrl_platform_data *pdata;
 };
 
 static ssize_t qsc6085_status_show(struct radio_dev *rdev, char *buff)
@@ -166,10 +167,16 @@ static ssize_t qsc6085_do_powerup(struct qsc6085_info *info)
 					__func__);
 			info->status = QSC6085_STATUS_NORMAL;
 		}
+		if (info->pdata->mapphone_bpwake_device) {
+			msleep(500);
+			pr_info("%s: re-register bpwake device\n", __func__);
+			platform_device_del(info->pdata->mapphone_bpwake_device);
+			platform_device_add(info->pdata->mapphone_bpwake_device);
+		}
 	} else {
 		pr_err("%s: failed to start qsc6085\n", __func__);
 		info->status = QSC6085_STATUS_UNDEFINED;
-	}
+	} 
 
 	return err;
 }
@@ -225,6 +232,7 @@ static int __devinit qsc6085_probe(struct platform_device *pdev)
 	struct qsc6085_info *info;
 	int reset_irq, err = 0;
 
+
 	dev_info(&pdev->dev, "qsc6085_probe");
 	pr_debug("%s: %s - %s\n", __func__, dev_name(&pdev->dev), pdata->name);
 
@@ -240,6 +248,8 @@ static int __devinit qsc6085_probe(struct platform_device *pdev)
 	info->rdev.name = pdata->name;
 	info->rdev.status = qsc6085_status_show;
 	info->rdev.command = qsc6085_command;
+
+	info->pdata = pdata;
 
 	/* ps_hold */
 	pr_debug("%s: setup qsc6085_ps_hold\n", __func__);

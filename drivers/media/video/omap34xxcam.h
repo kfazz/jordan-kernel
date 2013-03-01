@@ -42,6 +42,8 @@
 #define CAM_NAME			"omap34xxcam"
 #define CAM_SHORT_NAME			"omap3"
 
+#define OMAP_ISP_AF     	(1 << 4)
+#define OMAP_ISP_HIST   	(1 << 5)
 #define OMAP34XXCAM_XCLK_NONE	-1
 #define OMAP34XXCAM_XCLK_A	0
 #define OMAP34XXCAM_XCLK_B	1
@@ -178,5 +180,52 @@ struct omap34xxcam_fh {
 	struct omap34xxcam_videodev *vdev;
 	wait_queue_head_t poll_vb;
 };
+
+#ifdef CONFIG_VIDEO_OMAP3_HP3A
+/**
+ * struct cam_reg - per sensor register read/write
+ * @len: length of register
+ * @reg: address of register
+ * @val: value of the register
+ */
+struct cam_reg{
+	u16 len;
+	u32 reg;
+	u32 val;
+};
+
+/**
+ * struct cam_sensor_settings - per sensor register read/write
+ * @flags: length of register
+ * @exposure: exposure value to be set
+ * @gain: analog gain value tobe set
+ * @regs: number of registers
+ * @reg_data: pointer to a array of struct cam_reg
+ */
+struct cam_sensor_settings{
+	u32 flags;
+	u32 exposure;
+	u16 gain;
+	u16 fps;
+	u16 regs;
+	void *reg_data;
+};
+
+#define	OMAP34XXCAM_SET_EXPOSURE         0x1
+#define	OMAP34XXCAM_SET_GAIN                 0x2
+#define	OMAP34XXCAM_READ_REGS              0x4
+#define	OMAP34XXCAM_WRITE_REGS             0x8
+#define	OMAP34XXCAM_SET_FPS                   0x10
+
+#define	OMAP34XXCAM_REG_8BIT                  0x1
+#define	OMAP34XXCAM_REG_16BIT                0x2
+#define	OMAP34XXCAM_REG_32BIT                0x4
+#define	OMAP34XXCAM_REG_END                  0xFF
+
+#define V4L2_CID_PRIVATE_SENSOR_READ_REG	(V4L2_CID_PRIVATE_BASE + 20)
+#define V4L2_CID_PRIVATE_SENSOR_WRITE_REG	(V4L2_CID_PRIVATE_BASE + 21)
+
+int omap34xxcam_sensor_settings(int dev, struct cam_sensor_settings *settings);
+#endif
 
 #endif /* ifndef OMAP34XXCAM_H */

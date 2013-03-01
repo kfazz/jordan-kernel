@@ -523,9 +523,9 @@ struct ion_buffer *ion_share(struct ion_client *client,
 {
 	bool valid_handle;
 
-	mutex_lock(&client->lock);
+	//mutex_lock(&client->lock);
 	valid_handle = ion_handle_validate(client, handle);
-	mutex_unlock(&client->lock);
+	//mutex_unlock(&client->lock);
 	if (!valid_handle) {
 		WARN("%s: invalid handle passed to share.\n", __func__);
 		return ERR_PTR(-EINVAL);

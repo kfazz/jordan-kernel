@@ -4299,7 +4299,7 @@ static void dsi_update_screen_dispc(struct omap_dss_device *dssdev,
 
 	if (dsi->te_enabled)
 		l = FLD_MOD(l, 1, 30, 30); /* TE_EN */
-	else
+	 else 
 		l = FLD_MOD(l, 1, 31, 31); /* TE_START */
 	dsi_write_reg(dsidev, DSI_VC_TE(channel), l);
 

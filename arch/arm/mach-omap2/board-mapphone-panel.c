@@ -84,7 +84,7 @@ static void mapphone_panel_disable(struct omap_dss_device *dssdev);
 static struct omap_video_timings mapphone_panel_timings = {
 	.x_res          = 480,
 	.y_res          = 854,
-	.pixel_clock  = 25000,
+	//.pixel_clock    = 27200, //29000 for 59.99hz, so try 30
 	.hfp            = 44,
 	.hsw            = 2,
 	.hbp            = 38,
@@ -107,14 +107,10 @@ static struct mapphone_dsi_panel_data mapphone_panel_data = {
 	 */
 	.rst_delay_after_high	= 15,
 	.use_ext_te		= false,
-	.use_esd_check		= true,
+	.use_esd_check		= false, //was true
 	.set_backlight		= NULL,
 	.te_support		= true,
-//#ifdef CONFIG_MACH_OMAP_MAPPHONE_DEFY
-//	.te_scan_line		= 0x300,
-//#else
-	.te_scan_line		= 300,
-//#endif
+	//.te_scan_line		= 300,//0x300
 	.te_type		= OMAP_DSI_TE_MIPI_PHY,
 	.cmoste_wr		= false,
 	.ftr_support.som	= false,
@@ -131,20 +127,21 @@ static struct omap_dss_device mapphone_lcd_device = {
 	.phy.dsi.data1_pol = 0,
 	.phy.dsi.data2_lane = 3,
 	.phy.dsi.data2_pol = 0,
-	.clocks.dsi.regn = 13,
-	.clocks.dsi.regm = 170,
+	.clocks.dsi.regn = 13,//13
+	.clocks.dsi.regm = 170, //170
 	.clocks.dsi.regm_dispc = 5,
 	.clocks.dsi.regm_dsi = 5,
-	.clocks.dsi.dsi_fclk_src = OMAP_DSS_CLK_SRC_DSI_PLL_HSDIV_DSI,
 	.clocks.dispc.channel.lck_div = 1,
-	.clocks.dispc.channel.pck_div = 4,
+	.clocks.dispc.channel.pck_div = 4, 
+	.clocks.dsi.lp_clk_div = 7,//7
+	.clocks.dsi.dsi_fclk_src = OMAP_DSS_CLK_SRC_DSI_PLL_HSDIV_DSI,
 	.clocks.dispc.channel.lcd_clk_src =
 				OMAP_DSS_CLK_SRC_DSI_PLL_HSDIV_DISPC,
 	.clocks.dispc.dispc_fclk_src = OMAP_DSS_CLK_SRC_DSI_PLL_HSDIV_DISPC,
-	.clocks.dsi.lp_clk_div = 7,
 	.phy.dsi.type = OMAP_DSS_DSI_TYPE_CMD_MODE,
 	.platform_enable = mapphone_panel_enable,
 	.platform_disable = mapphone_panel_disable,
+	.panel.panel_id = 0x000a0001,
 };
 
 /* It must be matched with device_tree,
@@ -440,6 +437,8 @@ static struct omapfb_platform_data mapphone_fb_data = {
 			},
 		},
 	},
+	.xres_virtual = 480,
+	.yres_virtual = 1718, //wtf? from 2.6.32
 	/*.feature_fb1_to_vid2 = 0,*/
 	/*.num_fbs = 1,*/
 };
@@ -576,77 +575,6 @@ static int mapphone_dt_get_dsi_panel_info(void)
 		goto err;
 	}
 
-	/* Retrieve the panel information */
-	panel_prop = of_get_property(panel_node, "dsi_clk_lane", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.clk_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_clk_lane\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_clk_pol", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.clk_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_clk_pol\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data1_lane", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data1_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data1_lane\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data1_pol", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data1_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data1_pol\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data2_lane", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data2_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data2_lane\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data2_pol", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data2_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data2_pol\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data3_lane", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data3_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data3_lane\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data3_pol", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data3_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data3_pol\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data4_lane", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data4_lane = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data4_lane\n");
-	}
-
-	panel_prop = of_get_property(panel_node, "dsi_data4_pol", NULL);
-	if (panel_prop != NULL) {
-		mapphone_lcd_device.phy.dsi.data4_pol = *(u8 *)panel_prop;
-	} else {
-		printk("Can't get dsi_data4_pol\n");
-	}
-
 	panel_prop = of_get_property(panel_node, "gpio_reset", NULL);
 	if (panel_prop != NULL) {
 		mapphone_panel_data.reset_gpio = *(u32 *)panel_prop;
@@ -666,87 +594,8 @@ static int mapphone_dt_get_dsi_panel_info(void)
 	if (r)
 		goto end;
 
-	panel_prop = of_get_property(panel_node, "disp_cabc_en", NULL);
-	if (panel_prop != NULL)
-		mapphone_displ_lvds_cabc_en = *(u32 *)panel_prop;
 
-	panel_prop = of_get_property(panel_node, "color_en", NULL);
-	if (panel_prop != NULL)
-		mapphone_displ_color_en = *(u32 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "lcd_bl_pwm", NULL);
-	if (panel_prop != NULL)
-		mapphone_displ_lcd_bl_pwm = *(u32 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "lvds_wp_g", NULL);
-	if (panel_prop != NULL)
-		mapphone_displ_lvds_wp_g = *(u32 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "lvds_wp_e", NULL);
-	if (panel_prop != NULL)
-		mapphone_displ_lvds_wp_e = *(u32 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "type", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.panel.panel_id = *(u32 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "regn", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dsi.regn = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "regm", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dsi.regm = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "regm3", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dsi.regm_dispc = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "regm4", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dsi.regm_dsi = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "lp_clk_div", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dsi.lp_clk_div = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "lck_div", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dispc.channel.lck_div =
-			 *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "pck_div", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.clocks.dispc.channel.pck_div =
-			 *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "d2l_use_ulps", NULL);
-	if (panel_prop != NULL)
-		mapphone_lcd_device.phy.dsi.d2l_use_ulps = *(u16 *)panel_prop;
-
-	panel_prop = of_get_property(panel_node, "disp_intf", NULL);
-	if (panel_prop != NULL) {
-		disp_intf = *(u8 *)panel_prop;
-
-		if ((disp_intf == OMAP_DSS_DISP_INTF_MIPI_VP_CM) ||
-			(disp_intf == OMAP_DSS_DISP_INTF_MIPI_L4_CM))
-			mapphone_lcd_device.phy.dsi.type =
-				OMAP_DSS_DSI_TYPE_CMD_MODE;
-		else if ((disp_intf == OMAP_DSS_DISP_INTF_MIPI_VP_VM) ||
-			(disp_intf == OMAP_DSS_DISP_INTF_MIPI_L4_VM) ||
-			(disp_intf == OMAP_DSS_DISP_INTF_MIPI_LVDS_VP_VM)) {
-			mapphone_lcd_device.phy.dsi.type =
-				OMAP_DSS_DSI_TYPE_VIDEO_MODE;
-#ifdef CONFIG_FB_OMAP_BOOTLOADER_INIT
-			mapphone_lcd_device.skip_init = true;
-#else
-			mapphone_lcd_device.skip_init = false;
-#endif
-		} else {
-			PANELERR("Invalid disp_intf in dt = %d\n", disp_intf);
-			r = -ENODEV;
-		}
-	}
+	mapphone_lcd_device.phy.dsi.type = OMAP_DSS_DSI_TYPE_CMD_MODE;
 
 end:
 	of_node_put(panel_node);
@@ -767,51 +616,6 @@ static int mapphone_dt_get_panel_info(void)
 
 	panel_node = of_find_node_by_path(DT_PATH_DISPLAY1);
 	if (panel_node != NULL) {
-		/* Retrieve the panel DSI timing */
-		panel_prop = of_get_property(panel_node, "width", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.x_res = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node, "height", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.y_res = *(u16 *)panel_prop;
-
-#if 0
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_hfp", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.hfp = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_hsw", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.hsw = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_hbp", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.hbp = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_vfp", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.vfp = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_vsw", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.vsw = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_timing_vbp", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.vbp = *(u16 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"dispc_pixel_clk", NULL);
-		if (panel_prop != NULL)
-			mapphone_panel_timings.pixel_clock = *(u32 *)panel_prop;
-#endif
 
 		panel_prop = of_get_property(panel_node,
 						"phy_width_mm", NULL);
@@ -831,45 +635,9 @@ static int mapphone_dt_get_panel_info(void)
 				*(u16 *)panel_prop * 1000;
 		}
 
-		panel_prop = of_get_property(panel_node,
-						"use_esd_check", NULL);
-		if (panel_prop != NULL)
-			panel_data->use_esd_check = *(u32 *)panel_prop;
 
-		panel_prop = of_get_property(panel_node,
-						"te_support", NULL);
-		if (panel_prop != NULL)
-			panel_data->te_support = *(u32 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"cmoste_wr", NULL);
-		if (panel_prop != NULL)
-			panel_data->cmoste_wr = *(u32 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node,
-						"te_scan_line", NULL);
-		if (panel_prop != NULL)
-			panel_data->te_scan_line =  *(u32 *)panel_prop;
-
-		panel_prop = of_get_property(panel_node, "te_type", NULL);
-		if (panel_prop != NULL)
-			panel_data->te_type = *(enum omap_dsi_te_type *)
-				panel_prop;
-
-		panel_prop = of_get_property(panel_node, "pixel_fmt", NULL);
-		if (panel_prop != NULL) {
-			panel_pixel_fmt = *(u32 *)panel_prop;
-			if (panel_pixel_fmt == OMAP_DSS_DISP_PXL_FMT_RGB888)
-				pixel_size = 24;
-			else if (panel_pixel_fmt ==
-					OMAP_DSS_DISP_PXL_FMT_RGB565)
-				pixel_size = 16;
-			else {
-				PANELERR(" Invalid panel_pxl_fmt=%d",
-							panel_pixel_fmt);
-				return -ENODEV;
-			}
-		}
+		pixel_size = 24; //16;
+		
 
 		of_node_put(panel_node);
 
@@ -1291,11 +1059,11 @@ static void mapphone_panel_get_fb_info(void)
 	if (panel_node) {
 		panel_prop = of_get_property(panel_node, "fb_width", NULL);
 		if (panel_prop != NULL)
-			mapphone_fb_data.xres_virtual = *(u16 *)panel_prop;
+			//mapphone_fb_data.xres_virtual = *(u16 *)panel_prop;
 
 		panel_prop = of_get_property(panel_node, "fb_height", NULL);
 		if (panel_prop != NULL)
-			mapphone_fb_data.yres_virtual = *(u16 *)panel_prop;
+			//mapphone_fb_data.yres_virtual = *(u16 *)panel_prop;
 
 		of_node_put(panel_node);
 	}

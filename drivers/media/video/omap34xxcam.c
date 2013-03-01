@@ -1305,6 +1305,8 @@ static int vidioc_cropcap(struct file *file, void *_fh, struct v4l2_cropcap *a)
 	if (vdev->vdev_sensor == v4l2_int_device_dummy())
 		return -EINVAL;
 
+	printk("omap34xxcam vidioc_cropcap \n");
+
 	mutex_lock(&vdev->mutex);
 
 	rval = vidioc_int_cropcap(vdev->vdev_sensor, a);

@@ -16,7 +16,12 @@ extern void __init mapphone_usbhost_init(void);
 extern void __init mapphone_serial_init(void);
 extern int __init mapphone_mdm_ctrl_init(void);
 extern void __init mapphone_gadget_init(void);
+extern void __init mapphone_camera_init(void);
 extern struct attribute_group *mapphone_touch_vkey_prop_attr_group;
+
+extern struct mt9p031_platform_data mapphone_mt9p031_platform_data;
+extern struct mt9p012_platform_data mapphone_mt9p012_platform_data;
+extern struct hplens_platform_data mapphone_hplens_platform_data;
 
 #define BOOT_MODE_MAX_LEN 30
 #define I2C_BUS_MAX_DEVICES 5

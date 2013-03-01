@@ -27,6 +27,7 @@ struct qsc6085_ctrl_platform_data {
 	unsigned int gpio_pshold;
 	unsigned int gpio_reset_out;
 	unsigned int gpio_flash_enable;
+	struct platform_device *mapphone_bpwake_device;
 };
 
 #endif

@@ -491,7 +491,7 @@ static void mapphone_framedone_cb(int err, void *data)
 	DBG("%s()\n", __func__);
 
 	/* Turn on display when framedone */
-	mapphone_panel_display_on(dssdev);
+//	mapphone_panel_display_on(dssdev);
 
 #ifdef CONFIG_MACH_OMAP_MAPPHONE_DEFY
 	//dsi_from_dss_runtime_put(dssdev);
@@ -4091,7 +4091,12 @@ static int mapphone_panel_power_on(struct omap_dss_device *dssdev)
 	mp_data->enabled = true;
 	mp_data->som_enabled = false;
 
+	/*moved this out of interrupt*/
+	mapphone_panel_display_on(dssdev);
+
 	omapdss_dsi_vc_enable_hs(dssdev, dsi_vc_cmd, true);
+
+
 
 	if (dssdev->phy.dsi.type == OMAP_DSS_DSI_TYPE_VIDEO_MODE) {
 		if (!dssdev->skip_init)
@@ -4372,8 +4377,8 @@ static int mapphone_panel_enable_te_locked(struct omap_dss_device *dssdev,
 		}
 
 		data[0] = EDISCO_CMD_SET_TEAR_SCANLINE;
-		data[1] = (panel_data->te_scan_line & 0xff00) >> 8;
-		data[2] = (panel_data->te_scan_line & 0xff);
+		data[1] = 0x03; // (panel_data->te_scan_line & 0xff00) >> 8;
+		data[2] = 0x00; // (panel_data->te_scan_line & 0xff);
 		r = dsi_vc_dcs_write(dssdev, dsi_vc_cmd, data, 3);
 		if (r) {
 			printk(KERN_ERR "Failed to send EDISCO_CMD_SET_TEAR_SCANLINE\n");
@@ -4398,9 +4403,9 @@ static int mapphone_panel_enable_te_locked(struct omap_dss_device *dssdev,
 		}
 	}
 
-	r = omapdss_dsi_enable_te(dssdev, enable);
+//	r = omapdss_dsi_enable_te(dssdev, enable);
 
-//	r = omapdss_dsi_enable_te(dssdev, false);
+	r = omapdss_dsi_enable_te(dssdev, false);
 
 
 

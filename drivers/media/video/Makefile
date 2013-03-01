@@ -74,7 +74,13 @@ obj-$(CONFIG_VIDEO_M5MOLS)	+= m5mols/
 obj-$(CONFIG_VIDEO_IMX046) += imx046.o
 obj-$(CONFIG_VIDEO_LV8093) += lv8093.o
 obj-y += isp/
+
 obj-$(CONFIG_VIDEO_OMAP3) += omap34xxcam.o
+obj-$(CONFIG_VIDEO_MT9P012)     += mt9p012.o
+obj-$(CONFIG_VIDEO_MT9P031)     += mt9p031.o
+obj-$(CONFIG_VIDEO_OMAP3_HP3A) += hp3a/
+obj-$(CONFIG_VIDEO_OMAP3_HPLENS) += hplens.o
+
 obj-$(CONFIG_SOC_CAMERA_IMX074)		+= imx074.o
 obj-$(CONFIG_SOC_CAMERA_MT9M001)	+= mt9m001.o
 obj-$(CONFIG_SOC_CAMERA_MT9M111)	+= mt9m111.o
@@ -187,6 +193,10 @@ obj-y	+= davinci/
 obj-$(CONFIG_ARCH_OMAP)	+= omap/
 obj-$(CONFIG_TI_TILER)	+= tiler/
 obj-$(CONFIG_VIDEO_OMAP_GFX) += omapgfx/
+
+ifdef CONFIG_VIDEO_OMAP3_HP3A
+EXTRA_CFLAGS += -Idrivers/media/video/hp3a
+endif
 
 EXTRA_CFLAGS += -Idrivers/media/dvb/dvb-core
 EXTRA_CFLAGS += -Idrivers/media/dvb/frontends

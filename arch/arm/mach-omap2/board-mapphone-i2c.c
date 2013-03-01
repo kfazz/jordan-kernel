@@ -23,6 +23,10 @@
 #include <linux/vib-gpio.h>
 #include <linux/qtouch_obp_ts.h>
 
+#include <linux/lis331dlh.h>
+#include <linux/sfh7743.h>
+
+#define SHOLES_PROX_INT_GPIO		180
 #define MAPPHONE_LM_3530_INT_GPIO	92
 #define MAPPHONE_AKM8973_INT_GPIO	175
 #define MAPPHONE_AKM8973_RESET_GPIO	28
@@ -833,6 +837,106 @@ static int initialize_i2c_bus_info
 	return dev_cnt;
 }
 
+static struct regulator *sholes_lis331dlh_regulator;
+static int sholes_lis331dlh_initialization(void)
+{
+	struct regulator *reg;
+	reg = regulator_get(NULL, "vhvio");
+	if (IS_ERR(reg))
+		return PTR_ERR(reg);
+	sholes_lis331dlh_regulator = reg;
+	return 0;
+}
+
+static void sholes_lis331dlh_exit(void)
+{
+	regulator_put(sholes_lis331dlh_regulator);
+}
+
+static int sholes_lis331dlh_power_on(void)
+{
+	return regulator_enable(sholes_lis331dlh_regulator);
+}
+
+static int sholes_lis331dlh_power_off(void)
+{
+	if (sholes_lis331dlh_regulator)
+		return regulator_disable(sholes_lis331dlh_regulator);
+	return 0;
+}
+
+struct lis331dlh_platform_data sholes_lis331dlh_data = {
+	.init = sholes_lis331dlh_initialization,
+	.exit = sholes_lis331dlh_exit,
+	.power_on = sholes_lis331dlh_power_on,
+	.power_off = sholes_lis331dlh_power_off,
+
+	.min_interval	= 1,
+	.poll_interval	= 200,
+
+	.g_range	= LIS331DLH_G_8G,
+
+	.axis_map_x	= 0,
+	.axis_map_y	= 1,
+	.axis_map_z	= 2,
+
+	.negate_x	= 0,
+	.negate_y	= 0,
+	.negate_z	= 0,
+};
+
+static struct regulator *sholes_sfh7743_regulator;
+static int sholes_sfh7743_initialization(void)
+{
+	struct regulator *reg;
+	reg = regulator_get(NULL, "vsdio");
+	if (IS_ERR(reg))
+		return PTR_ERR(reg);
+	sholes_sfh7743_regulator = reg;
+	return 0;
+}
+
+static void sholes_sfh7743_exit(void)
+{
+	regulator_put(sholes_sfh7743_regulator);
+}
+
+static int sholes_sfh7743_power_on(void)
+{
+	return regulator_enable(sholes_sfh7743_regulator);
+}
+
+static int sholes_sfh7743_power_off(void)
+{
+	if (sholes_sfh7743_regulator)
+		return regulator_disable(sholes_sfh7743_regulator);
+	return 0;
+}
+
+static struct sfh7743_platform_data sholes_sfh7743_data = {
+	.init = sholes_sfh7743_initialization,
+	.exit = sholes_sfh7743_exit,
+	.power_on = sholes_sfh7743_power_on,
+	.power_off = sholes_sfh7743_power_off,
+
+	.gpio = SHOLES_PROX_INT_GPIO,
+};
+
+struct platform_device sfh7743_platform_device = {
+	.name = "sfh7743",
+	.id = -1,
+	.dev = {
+		.platform_data = &sholes_sfh7743_data,
+	},
+};
+
+static void __init sholes_sfh7743_init(void)
+{
+	gpio_request(SHOLES_PROX_INT_GPIO, "sfh7743 proximity int");
+	gpio_direction_input(SHOLES_PROX_INT_GPIO);
+	//omap_cfg_reg(Y3_34XX_GPIO180);
+}
+
 static struct i2c_board_info __initdata
 	mapphone_i2c_1_boardinfo[] = {
 	{
@@ -845,10 +949,6 @@ static struct i2c_board_info __initdata
 		.platform_data = &omap3430_als_light_data,
 		.irq = OMAP_GPIO_IRQ(MAPPHONE_LM_3530_INT_GPIO),
 	},
-	{
-		I2C_BOARD_INFO(LD_ISL29030_NAME, 0x44),
-		.platform_data = &isl29030_pdata,
-	},
 };
 
 static struct i2c_board_info __initdata
@@ -858,8 +958,8 @@ static struct i2c_board_info __initdata
 		.irq = OMAP_GPIO_IRQ(MAPPHONE_AKM8973_INT_GPIO),
 	},
 	{
-		I2C_BOARD_INFO("kxtf9", 0x0F),
-		.platform_data = &mapphone_kxtf9_data,
+		I2C_BOARD_INFO("lis331dlh", 0x19),
+		.platform_data = &sholes_lis331dlh_data,
 	},
 };
 
@@ -869,6 +969,18 @@ static struct i2c_board_info __initdata
 		I2C_BOARD_INFO("lm3554_led", 0x53),
 		.platform_data = &mapphone_camera_flash_3554,
 	},
+#if defined(CONFIG_VIDEO_MT9P012) || defined(CONFIG_VIDEO_MT9P012_MODULE)
+	{
+		I2C_BOARD_INFO("mt9p012", 0x36),
+		.platform_data = &mapphone_mt9p012_platform_data,
+	},
+#endif
+#ifdef CONFIG_VIDEO_OMAP3_HPLENS
+	{
+		I2C_BOARD_INFO("HP_GEN_LENS", 0x04),
+		.platform_data = &mapphone_hplens_platform_data,
+	},
+#endif
 };
 
 static struct omap_i2c_bus_board_data __initdata mapphone_i2c_1_bus_pdata;
@@ -886,40 +998,45 @@ void __init mapphone_i2c_init(void)
 	omap_register_i2c_bus_board_data(2, &mapphone_i2c_2_bus_pdata);
 	omap_register_i2c_bus_board_data(3, &mapphone_i2c_3_bus_pdata);
 
-	/* Populate I2C bus 1 devices */
-	i2c_bus_devices = initialize_i2c_bus_info(
-			1, mapphone_i2c_bus1_board_info,
-			I2C_BUS_MAX_DEVICES,
-			mapphone_i2c_1_boardinfo,
-			ARRAY_SIZE(mapphone_i2c_1_boardinfo));
-	omap_register_i2c_bus(1, 400,
-			mapphone_i2c_bus1_board_info, i2c_bus_devices);
+       /* Populate I2C bus 1 devices */
+       i2c_bus_devices = initialize_i2c_bus_info(
+                       1, mapphone_i2c_bus1_board_info,
+                       I2C_BUS_MAX_DEVICES,
+                       mapphone_i2c_1_boardinfo,
+                       ARRAY_SIZE(mapphone_i2c_1_boardinfo));
+       omap_register_i2c_bus(1, 400,
+                       mapphone_i2c_bus1_board_info, i2c_bus_devices);
 
-	/* Populate I2C bus 2 devices */
-	i2c_bus_devices = initialize_i2c_bus_info(
-			2, mapphone_i2c_bus2_board_info,
-			I2C_BUS_MAX_DEVICES,
-			mapphone_i2c_2_boardinfo,
-			ARRAY_SIZE(mapphone_i2c_2_boardinfo));
-	omap_register_i2c_bus(2, 400,
-			mapphone_i2c_bus2_board_info, i2c_bus_devices);
+       /* Populate I2C bus 2 devices */
+       i2c_bus_devices = initialize_i2c_bus_info(
+                       2, mapphone_i2c_bus2_board_info,
+                       I2C_BUS_MAX_DEVICES,
+                       mapphone_i2c_2_boardinfo,
+                       ARRAY_SIZE(mapphone_i2c_2_boardinfo));
+       omap_register_i2c_bus(2, 400,
+                       mapphone_i2c_bus2_board_info, i2c_bus_devices);
 
-	/* Populate I2C bus 3 devices */
-	i2c_bus_devices = initialize_i2c_bus_info(
-			3, mapphone_i2c_bus3_board_info,
-			I2C_BUS_MAX_DEVICES,
-			mapphone_i2c_3_boardinfo,
-			ARRAY_SIZE(mapphone_i2c_3_boardinfo));
-	omap_register_i2c_bus(3, 400,
-			mapphone_i2c_bus3_board_info, i2c_bus_devices);
+       /* Populate I2C bus 3 devices */
+       i2c_bus_devices = initialize_i2c_bus_info(
+                       3, mapphone_i2c_bus3_board_info,
+                       I2C_BUS_MAX_DEVICES,
+                       mapphone_i2c_3_boardinfo,
+                       ARRAY_SIZE(mapphone_i2c_3_boardinfo));
+       omap_register_i2c_bus(3, 400,
+                       mapphone_i2c_bus3_board_info, i2c_bus_devices);
+
+
+	//omap_register_i2c_bus(1, 400,mapphone_i2c_1_boardinfo, ARRAY_SIZE(mapphone_i2c_1_boardinfo));
+	//omap_register_i2c_bus(2, 400,mapphone_i2c_2_boardinfo, ARRAY_SIZE(mapphone_i2c_2_boardinfo));
+	//omap_register_i2c_bus(3, 400,mapphone_i2c_3_boardinfo, ARRAY_SIZE(mapphone_i2c_3_boardinfo));
 
 	mapphone_akm8973_init();
-	//mapphone_kxtf9_init();
+	sholes_sfh7743_init();
 	mapphone_lm3554_init();
 	mapphone_isl29030_init();
-	//mapphone_bu52014hfv_init();
+	mapphone_bu52014hfv_init();
 	platform_device_register(&omap3430_hall_effect_dock);
-
+	platform_device_register(&sfh7743_platform_device);
 	mapphone_vibrator_init();
 	platform_device_register(&mapphone_vib_gpio);
 

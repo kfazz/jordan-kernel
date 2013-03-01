@@ -191,9 +191,7 @@ obj-$(CONFIG_ARCH_OMAP4)		+= omap_hwmod_44xx_data.o
 obj-$(CONFIG_OMAP3_EMU)			+= emu.o
 
 # L3 interconnect
-#ifneq ($(CONFIG_MACH_OMAP_MAPPHONE),y)
 obj-$(CONFIG_ARCH_OMAP3)		+= omap_l3_smx.o
-#endif
 obj-$(CONFIG_ARCH_OMAP4)		+= omap_l3_noc.o
 
 # LDO stuff
@@ -283,7 +281,8 @@ obj-$(CONFIG_MACH_OMAP_MAPPHONE)	   += board-mapphone.o \
 					   board-mapphone-keypad.o \
 					   board-mapphone-usb.o \
 					   pmic-cpcap.o \
-					   board-mapphone-bpwake.o 
+					   board-mapphone-bpwake.o \
+					   board-mapphone-camera.o
  
 obj-$(CONFIG_EMU_UART_DEBUG)		+= board-mapphone-emu_uart.o
 obj-$(CONFIG_MACH_CM_T35)		+= board-cm-t35.o \

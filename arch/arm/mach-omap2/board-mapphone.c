@@ -204,9 +204,16 @@ static struct platform_device btwilink_device = {
 	.id = -1,
 };
 
+static struct platform_device beagle_cam_device = {
+.name	= "beagle_cam",
+.id	= -1,
+};
+
+
 static struct platform_device *mapphone_devices[] __initdata = {
 	&wl127x_device,
 	&btwilink_device,
+	&beagle_cam_device,
 };
 
 static struct wl12xx_platform_data mapphone_wlan_data __initdata = {
@@ -603,6 +610,7 @@ static void __init config_mmc2_init(void)
 				OMAP343X_CONTROL_DEVCONF1);
 }
 
+
 static int wake_gpio_strobe = SHOLES_BPWAKE_STROBE_GPIO;
 static struct wake_lock uart_lock;
 
@@ -612,7 +620,7 @@ static void mapphone_uart_remove(struct uart_omap_port *up);
 static void mapphone_uart_wake_peer(struct uart_port *up);
 
 /* Give 1s wakelock time for each port */
-static u8 wakelock_length[OMAP_MAX_HSUART_PORTS] = {2, 2, 2};
+static u8 wakelock_length[OMAP_MAX_HSUART_PORTS] = {2, 0, 0};
 
 static struct omap_device_pad mapphone_uart1_pads[] __initdata = {
 	{
@@ -659,7 +667,7 @@ static struct omap_device_pad mapphone_uart2_pads[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_EMU_UART_DEBUG
+//#ifdef CONFIG_EMU_UART_DEBUG
 static struct omap_device_pad mapphone_uart3_pads[] __initdata = {
 	{
 		.name	= "uart3_cts_rctx.uart3_cts_rctx",
@@ -680,7 +688,7 @@ static struct omap_device_pad mapphone_uart3_pads[] __initdata = {
 		.idle	= OMAP_PIN_INPUT | OMAP_MUX_MODE0,
 	},
 };
-#endif
+//#endif
 
 static struct omap_uart_port_info omap_serial_platform_data[] = {
 	{
@@ -786,29 +794,54 @@ void mapphone_serial_init(void)
 		ARRAY_SIZE(mapphone_uart1_pads), &omap_serial_platform_data[0]);
 	omap_serial_init_port_pads(1, mapphone_uart2_pads,
 		ARRAY_SIZE(mapphone_uart2_pads), &omap_serial_platform_data[1]);
-#ifdef CONFIG_EMU_UART_DEBUG
+//#ifdef CONFIG_EMU_UART_DEBUG
 	omap_serial_init_port_pads(2, mapphone_uart3_pads,
 		ARRAY_SIZE(mapphone_uart3_pads), &omap_serial_platform_data[2]);
-#endif
+//#endif
 }
+
+
 
 static void __init omap_mapphone_init(void)
 {
+
 	mapphone_power_off_init();
 	/*
 	* This will allow unused regulator to be shutdown. This flag
 	* should be set in the board file. Before regulators are registered.
 	*/
 	regulator_has_full_constraints();
+
+	omap_serial_init(NULL);
+
 	mapphone_mdm_ctrl_init();
-	mapphone_serial_init();
+	//mapphone_serial_init();
 	mapphone_bp_model_init();
 	mapphone_voltage_init();
 	mapphone_gpio_mapping_init();
 
 	mapphone_i2c_init();
-	mapphone_padconf_init();	/*mux is done here, so anything dependant should go after*/
 
+	mapphone_padconf_init();	/*mux is done here, so anything dependant should go after*/
+	omap3_mux_init(board_mux, OMAP_PACKAGE_CBC); //for testing
+
+	/* keypad column fixup after mux_init */
+/*	omap_mux_init_gpio(43, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(53, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(54, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(55, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(56, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(57, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(58, OMAP_PIN_OUTPUT);
+	omap_mux_init_gpio(63, OMAP_PIN_OUTPUT);
+	gpio_direction_output(43 ,1);
+	gpio_direction_output(53 ,1);
+	gpio_direction_output(54 ,1);
+	gpio_direction_output(55 ,1);
+	gpio_direction_output(56 ,1);
+	gpio_direction_output(57 ,1);
+	gpio_direction_output(58 ,1);
+	gpio_direction_output(63 ,1); */
 
 	//sholes_omap_mdm_ctrl_init(); //might need for old ril
 
@@ -832,6 +865,7 @@ static void __init omap_mapphone_init(void)
 	omap_enable_smartreflex_on_init();
 	mapphone_create_board_props();
 	mapphone_gadget_init();
+
 }
 
 static void __init mapphone_reserve(void)

@@ -97,13 +97,13 @@ int omap3_core_dpll_m2_set_rate(struct clk *clk, unsigned long rate)
 
 	sdrcrate = sdrc_ick_p->rate;
 	printk("sdrcrate = %lu\n", sdrcrate);
-#if 0
+//#if 0
 	if (rate > clk->rate)
 		sdrcrate <<= ((rate / clk->rate) >> 1);
 	else
 		sdrcrate >>= ((clk->rate / rate) >> 1);
-#endif
-	sdrcrate = rate / 2;
+//#endif
+	//sdrcrate = rate / 2;
 
 	printk ("new sdrcrate: %lu\n", sdrcrate);
 

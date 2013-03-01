@@ -633,14 +633,16 @@ u32 isp_set_xclk(struct device *dev, u32 xclk, u8 xclksel)
 	u32 divisor;
 	u32 currentxclk;
 	struct isp_device *isp = dev_get_drvdata(dev);
-
+	DPRINTK_ISPCTRL("current mclk: %lu xclk requested: %lu \n", isp->mclk, xclk); 
 	if (xclk >= isp->mclk) {
+		DPRINTK_ISPCTRL("Requested xclk greater than mclk, bypassing divider.\n");
 		divisor = ISPTCTRL_CTRL_DIV_BYPASS;
 		currentxclk = isp->mclk;
 	} else if (xclk >= 2) {
 		divisor = isp->mclk / xclk;
 		if (divisor >= ISPTCTRL_CTRL_DIV_BYPASS)
 			divisor = ISPTCTRL_CTRL_DIV_BYPASS - 1;
+		DPRINTK_ISPCTRL("Selected %d as xclk divisor\n",divisor);
 		currentxclk = isp->mclk / divisor;
 	} else {
 		divisor = xclk;
